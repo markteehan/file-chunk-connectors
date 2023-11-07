@@ -41,6 +41,13 @@ Please feel free to raise issues and I will endeavour to address them.
 ## Confluent Hub
 These connectors are unavailable on Confluent Hub.
 
+
+## Errors
+```org.apache.kafka.common.errors.RecordTooLargeException: The request included a message larger than the max message size the server will accept.```
+The value specified for binary.chunk.size.bytes exceeds the maximum message size for this Kafka cluster. SPecify a smaller value.
+
+
+
 ## Manually
 Copy the jarfiles for the source and sink connectors to your kafka connect plugins directory and restart Kafka Connect:
 
@@ -67,36 +74,25 @@ schema.registry.url=http://localhost:8081
 
 ## Source Connector Job Submit example
 Aside from common defaults specify the following:
+```
 {
                            "name": "file-chunk-source-job"
 ,"config":{
-                       "group.id":"macbook-spooldir-binary"   ???
-,                       "topic": "file-chunk-events"
-,             "connector.class": "com.github.markteehan.file.chunk.source.SpoolDirBinaryFileSourceConnector"
-,       "auto.register.schemas": "false"
-,           "errors.log.enable": "true"
-,                  "key.ignore": "true"
-,               "schema.ignore": "true"
-,   "schema.generation.enabled": "false"
-,          "empty.poll.wait.ms": "5000"
-,                  "input.path": "/tmp/queued"
-,                  "error.path": "/tmp/error"
-,               "finished.path": "/tmp/finished"
-,          "input.file.pattern": ".*JPG.*"
-,                  "batch.size": "1"
-,                  "task.count": "1"
-,      "file.buffer.size.bytes": "131072"
-,               "key.converter": "io.confluent.connect.json.JsonSchemaConverter"
-, "key.converter.schemas.enable": "true"
-, "key.converter.schema.registry.url": "http://localhost:8081/"
-,               "halt.on.error" : "FALSE"
-,               "cleanup.policy" : "MOVE"
-,       "file.buffer.size.bytes" : "3300000"
-,          "file.minimum.age.ms" : "1000"
-,      "binary.chunk.size.bytes" : "510240"
+                                  "topic": "file-chunk-connector-events"
+,                       "connector.class": "com.github.markteehan.file.chunk.source.SpoolDirBinaryFileSourceConnector"
+,                            "input.path": "/tmp/queued"
+,                            "error.path": "/tmp/error"
+,                         "finished.path": "/tmp/finished"
+,                    "input.file.pattern": ".*JPG.*"
+,                            "task.count": "1"
+,                        "halt.on.error" : "FALSE"
+,               "file.buffer.size.bytes" : "3300000"
+,                  "file.minimum.age.ms" : "1000"
+,              "binary.chunk.size.bytes" : "510240"
 , "cleanup.policy.maintain.relative.path": "true"
-, "input.path.walk.recursively" : "true"
+,          "input.path.walk.recursively" : "true"
 }}
+```
 
 #### File System
 
