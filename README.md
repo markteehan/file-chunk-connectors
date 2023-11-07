@@ -2,14 +2,14 @@
 [Documentation](https://jcustenborder.github.io/kafka-connect-documentation/projects/kafka-connect-spooldir) | [Confluent Hub](https://www.confluent.io/hub/jcustenborder/kafka-connect-spooldir)
 
 This Kafka Connector streams files though a Kafka topic by breaking them into "chunks" that fit inside a kafka message. A matching FileSink connector consumes file chunks and re-assembles the Kafka messages into the original file.
-File sizes can exceed the maximum message size for the Kafka cluster so this connector can be used to stream binary files such as .JPEG, .AVI, encrypted or compressed content etc.
+This connector can be used to stream binary files such as .JPEG, .AVI, encrypted or compressed content etc ranging in size from megabytes to gigabytes.
 This connector borrows heavily from the spooldir source connectors written by Jeremy Custenborder. To stream and schemify text or avro content, use the spooldir source connectors - to stream binary files; use this connector.
 
-There are many ways to send files between two endpoints: sftp, scp, curl, wget: sending files using streaming via Kafka offers a number of built-in benefits including sophisticated retry for poor client networks, TLS encryption, authentication, access control, compression, replay and parallelism. 
+There are many options available to send files between two endpoints: sftp, scp, curl, wget: sending files using streaming via Kafka offers a number of benefits that are built into the kafka client, including send-retry, TLS encryption, authentication, access control, compression, replay and parallelism. Sending files using Kafka Connect adds framework support that facilitates field deployment: including release control, access control, logging, configuration etc.
 
-It is suitable for data upload scenarios including
-- file-generating edge devices where a kafka connect client is preferable to custom-code uploader deployment, including windows clients
-- clients endpoints with unreliable networking: Kafka client infinite-retries ensures eventual data delivery with no-touch intervention
+It is suitable for data upload scenarios that include 
+- file-generating edge devices (including windows clients) where a kafka connect client is preferable to custom-code uploader deployment
+- client endpoints with unreliable networking: Kafka client infinite-retries ensures eventual data delivery with no-touch intervention
 - sophisticated encryption (such as cipher selection) which can be challenging using other data-sender utilities
 - sophisticated SaaS based authentiation models (including OAUTH2) enabling credential-less client deployments
 - automatic compression & decompression of file content (if uncompressed)
@@ -19,9 +19,22 @@ It is suitable for data upload scenarios including
 , this connector enables any Kafka cluster (including Confluent Cloud, Confluent Platform or Apache Kafka) to be used to stream files of any size.
 Note that the file must fit in memory of the sending client machine. 
 
-Message payloads are encoded as bytestream: there is no use of message schemas.
-Large files will be read using inputStream. 
-This means that the process could run out of memory. If this happens an exception will be thrown.
+Similar to  "spooldir", this connector monitors an input directory for new files that match an input patterns. Eligible files are split into chunks of chunk size (binary.chunk.size.bytes) which are produced to a kafka topic before moving the file to the "finished" directory (or the "error" directory if any failure occurred). For example a 45.07MB .JPG image file using a chunk size of 512KB creates 88 chunks of 512KB and a final 89th chunk of 14KB. The chunk size must be less than the max.message.size for the nominated topic (the maximum chunk count for a file is 100,000 chunks).
+The input directory on the sending device requires sufficient headroom to duplicate the largest file, since file chunks are written to the filesystem temporarily during streaming. Files are processed one at a time: the first queued file is chunked, sent and finished; before the second file is processed; and so on. 
+
+Message payloads are encoded as bytestream: there is no use of message schemas - any Kafka client can be used to consume. The accompanying file-chunk-sink connector reassembles chunks as files to a local filesystem - this borrows from the open-source file-sink connector. 
+
+
+
+These limitations are in place for the current release:
+- tasks.max = 1 - queued files are processed by a single uploader task
+- partitions = 1 - single-partition operation to ensure out of the box ordering of chunks
+  
+
+
+# License
+GPL v2. The source code is not yet available; pending some refactoring. Please feel free to raise issues and I will endeavour to address them.
+
 
 # Introduction
 [Documentation](https://jcustenborder.github.io/kafka-connect-documentation/projects/kafka-connect-spooldir) | [Confluent Hub](https://www.confluent.io/hub/jcustenborder/kafka-connect-spooldir)
