@@ -1,8 +1,10 @@
-# Binary Chunk Source Connector
-[Documentation](https://jcustenborder.github.io/kafka-connect-documentation/projects/kafka-connect-spooldir) | [Confluent Hub](https://www.confluent.io/hub/jcustenborder/kafka-connect-spooldir)
+# File Chunk Connector (Source & Sink)
 
-This Kafka Connector streams files though a Kafka topic by breaking them into "chunks" that fit inside a kafka message. A matching FileSink connector consumes file chunks and re-assembles the Kafka messages into the original file.
-This connector can be used to stream binary files such as .JPEG, .AVI, encrypted or compressed content etc ranging in size from megabytes to gigabytes.
+# Introduction
+The File Chunk Source Kafka Connector streams files though a Kafka topic by breaking each file into "chunks" that fit inside a kafka message. A matching File Chunk Sink connector consumes file chunks and re-assembles the Kafka messages into the original file.
+For example a 45.07MB .JPG image file using a chunk size of 512KB creates 89 Kafka messages: 88 chunks of 512KB and a final 89th chunk of 14KB. The chunk size must be less than the max.message.size for the nominated topic. The maximum chunk count for a file is 100,000 chunks.
+
+This connector can be used to stream binary files such as .JPEG, .AVI, encrypted or compressed content, ranging in size from megabytes to gigabytes.
 This connector borrows heavily from the spooldir source connectors written by Jeremy Custenborder. To stream and schemify text or avro content, use the spooldir source connectors - to stream binary files; use this connector.
 
 There are many options available to send files between two endpoints: sftp, scp, curl, wget: sending files using streaming via Kafka offers a number of benefits that are built into the kafka client, including send-retry, TLS encryption, authentication, access control, compression, replay and parallelism. Sending files using Kafka Connect adds framework support that facilitates field deployment: including release control, access control, logging, configuration etc.
@@ -15,11 +17,9 @@ It is suitable for data upload scenarios that include
 - automatic compression & decompression of file content (if uncompressed)
 - Kafka consumer features such as low-cost fanout of data to multiple services simultaneously, parallelism of consumer threads, delivery guarantees
 
+This connector enables any Kafka cluster (including Confluent Cloud, Confluent Platform or Apache Kafka) to be used to stream files of any size.
 
-, this connector enables any Kafka cluster (including Confluent Cloud, Confluent Platform or Apache Kafka) to be used to stream files of any size.
-Note that the file must fit in memory of the sending client machine. 
-
-Similar to  "spooldir", this connector monitors an input directory for new files that match an input patterns. Eligible files are split into chunks of chunk size (binary.chunk.size.bytes) which are produced to a kafka topic before moving the file to the "finished" directory (or the "error" directory if any failure occurred). For example a 45.07MB .JPG image file using a chunk size of 512KB creates 88 chunks of 512KB and a final 89th chunk of 14KB. The chunk size must be less than the max.message.size for the nominated topic (the maximum chunk count for a file is 100,000 chunks).
+Similar to  "spooldir", this connector monitors an input directory for new files that match an input patterns. Eligible files are split into chunks of chunk size (binary.chunk.size.bytes) which are produced to a kafka topic before moving the file to the "finished" directory (or the "error" directory if any failure occurred). 
 The input directory on the sending device requires sufficient headroom to duplicate the largest file, since file chunks are written to the filesystem temporarily during streaming. Files are processed one at a time: the first queued file is chunked, sent and finished; before the second file is processed; and so on. 
 
 Message payloads are encoded as bytestream: there is no use of message schemas - any Kafka client can be used to consume. The accompanying file-chunk-sink connector reassembles chunks as files to a local filesystem - this borrows from the open-source file-sink connector. 
@@ -29,19 +29,16 @@ Message payloads are encoded as bytestream: there is no use of message schemas -
 These limitations are in place for the current release:
 - tasks.max = 1 - queued files are processed by a single uploader task
 - partitions = 1 - single-partition operation to ensure out of the box ordering of chunks
-  
+- maximum chunk count for any single file is 100,000
+- further testing is need to determine the maximum file size that can be sent   
 
 
 # License
-GPL v2. The source code is not yet available; pending some refactoring. Please feel free to raise issues and I will endeavour to address them.
-
-
-# Introduction
-[Documentation](https://jcustenborder.github.io/kafka-connect-documentation/projects/kafka-connect-spooldir) | [Confluent Hub](https://www.confluent.io/hub/jcustenborder/kafka-connect-spooldir)
-
-This Kafka Connect connector provides the capability to watch a directory for files and read the data as new files are written to the input directory. Each of the records in the input file will be converted based on the user supplied schema. The connectors in this project handle all different kinds of use cases like ingesting json, csv, tsv, avro, or binary files.
+GPL v2. The source code is not yet available; pending some refactoring. Meanwhile the assembled jarfiles are available for download.
+Please feel free to raise issues and I will endeavour to address them.
 
 # Installation
+## Confluent Hub
 These connectors are unavailable on Confluent Hub.
 
 ## Manually
@@ -52,8 +49,54 @@ Copy the jarfiles for the source and sink connectors to your kafka connect plugi
 3. Restart the Connect worker.
 
 curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/kafka-connect-spooldir-2.0-SNAPSHOT.tar.gz
-curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/kafka-connect-chunksink-0.0.1-SNAPSHOT-jar-with-dependencies.jar
+curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-2.0-SNAPSHOT-jar-with-dependencies.jar
 
+## Connect Worker Properties
+Aside from common defaults specify the following:
+producer.compression.type=none   # if the source files are already compressed (JPEG, AVI, etc)
+value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+value.converter.schemas.enable=false
+...check
+key.converter=io.confluent.connect.json.JsonSchemaConverter
+key.converter.schemas.enable=true
+topic=file-chunk-events  <==========
+value.converter.schema.registry.url=http://localhost:8081
+key.converter.schema.registry.url=http://localhost:8081
+schema.registry.url=http://localhost:8081
+
+
+## Source Connector Job Submit example
+Aside from common defaults specify the following:
+{
+                           "name": "file-chunk-source-job"
+,"config":{
+                       "group.id":"macbook-spooldir-binary"   ???
+,                       "topic": "file-chunk-events"
+,             "connector.class": "com.github.markteehan.file.chunk.source.SpoolDirBinaryFileSourceConnector"
+,       "auto.register.schemas": "false"
+,           "errors.log.enable": "true"
+,                  "key.ignore": "true"
+,               "schema.ignore": "true"
+,   "schema.generation.enabled": "false"
+,          "empty.poll.wait.ms": "5000"
+,                  "input.path": "/tmp/queued"
+,                  "error.path": "/tmp/error"
+,               "finished.path": "/tmp/finished"
+,          "input.file.pattern": ".*JPG.*"
+,                  "batch.size": "1"
+,                  "task.count": "1"
+,      "file.buffer.size.bytes": "131072"
+,               "key.converter": "io.confluent.connect.json.JsonSchemaConverter"
+, "key.converter.schemas.enable": "true"
+, "key.converter.schema.registry.url": "http://localhost:8081/"
+,               "halt.on.error" : "FALSE"
+,               "cleanup.policy" : "MOVE"
+,       "file.buffer.size.bytes" : "3300000"
+,          "file.minimum.age.ms" : "1000"
+,      "binary.chunk.size.bytes" : "510240"
+, "cleanup.policy.maintain.relative.path": "true"
+, "input.path.walk.recursively" : "true"
+}}
 
 #### File System
 
