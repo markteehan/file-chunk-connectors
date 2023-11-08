@@ -19,10 +19,11 @@ It is suitable for data upload scenarios that include
 
 This connector enables any Kafka cluster (including Confluent Cloud, Confluent Platform or Apache Kafka) to be used to stream files of any size.
 
-Similar to  "spooldir", this connector monitors an input directory for new files that match an input patterns. Eligible files are split into chunks of chunk size (binary.chunk.size.bytes) which are produced to a kafka topic before moving the file to the "finished" directory (or the "error" directory if any failure occurred). 
+Similar to  "spooldir", this connector monitors an input directory for new files that match an input patterns. Eligible files are split into chunks of chunk size (
+binary.chunk.size.bytes) which are produced to a kafka topic before moving the file to the "finished" directory (or the "error" directory if any failure occurred). 
 The input directory on the sending device requires sufficient headroom to duplicate the largest file, since file chunks are written to the filesystem temporarily during streaming. Files are processed one at a time: the first queued file is chunked, sent and finished; before the second file is processed; and so on. 
 
-Message payloads are encoded as bytestream: there is no use of message schemas - any Kafka client can be used to consume. The accompanying file-chunk-sink connector reassembles chunks as files to a local filesystem - this borrows from the open-source file-sink connector. 
+Message payloads are encoded as bytestream: there is no use of message schemas. Any Kafka client can be used to consume. The accompanying file-chunk-sink connector reassembles chunks as files to a local filesystem - this borrows from the open-source file-sink connector. 
 
 
 
@@ -52,11 +53,14 @@ The value specified for binary.chunk.size.bytes exceeds the maximum message size
 Copy the jarfiles for the source and sink connectors to your kafka connect plugins directory and restart Kafka Connect:
 
 1. Create a directory under the `plugin.path` on your Connect worker.
-2. Copy all of the dependencies under the newly created subdirectory (curl; below)
-3. Restart the Connect worker.
-
+2. Copy all of the dependencies under the newly created subdirectory:
+```
 curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/kafka-connect-spooldir-2.0-SNAPSHOT.tar.gz
 curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-2.0-SNAPSHOT-jar-with-dependencies.jar
+```
+
+3. Restart the Connect worker.
+
 
 ## Connect Worker Properties
 Aside from common defaults specify the following:
