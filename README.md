@@ -87,6 +87,7 @@ key.converter=io.confluent.connect.json.JsonSchemaConverter
 key.converter.schemas.enable=false
 value.converter.schema.registry.url=http://localhost:8081
 key.converter.schema.registry.url=http://localhost:8081
+group.id=source-775
 ```
 
 ## Source Connector Job Submit example
@@ -118,6 +119,33 @@ Some differences exist with the spooldir connector:
 `file.buffer.size.bytes` is set to the same value as `binary.chunk.size.bytes`
 `files.sort.attributes` is preset to NAMEASC
 `file.charset` is preset to UTF-8
+
+### Logging
+Logging output for a file split if a file called 8ebdf68b-DJI_0765.JPG (26193701 bytes) using a binary.chunk.size.bytes = 512000. 
+```
+INFO [source-775|task-0] Checking to ensure input.path '/tmp/queued' is writable
+ INFO [source-775|task-0] Checking to ensure error.path '/tmp/error' is writable
+ INFO [source-775|task-0] Checking to ensure finished.path '/tmp/finished' is writable
+ INFO [source-775|task-0] WorkerSourceTask{id=client775-0} Source task finished initialization and start
+ INFO [source-775|task-0] No files matching input.file.pattern were found in /tmp/queued
+ INFO [source-775|task-0] No files matching input.file.pattern were found in /tmp/queued
+ INFO [source-775|task-0] 8ebdf68b-DJI_0765.JPG: start split (size 26193701 bytes: 52 chunks of 512000 bytes)
+ INFO [source-775|task-0] 8ebdf68b-DJI_0765.JPG: (size 26193701, Split Size=512000)   Split 00001 of 52. Chunk Start/End=1:512001
+ INFO [source-775|task-0] 8ebdf68b-DJI_0765.JPG: (size 26193701, Split Size=512000)   Split 00002 of 52. Chunk Start/End=512001:1024001
+ INFO [source-775|task-0] 8ebdf68b-DJI_0765.JPG: (size 26193701, Split Size=512000)   Split 00003 of 52. Chunk Start/End=1024001:1536001
+ INFO [source-775|task-0] 8ebdf68b-DJI_0765.JPG: (size 26193701, Split Size=512000)   Split 00004 of 52. Chunk Start/End=1536001:2048001
+ ...
+ INFO [source-775|task-0] 8ebdf68b-DJI_0765.JPG: (size 26193701, Split Size=430299)   Split 00052 of 52. Chunk Start/End=26112001:26624001
+ INFO [source-775|task-0] 8ebdf68b-DJI_0765.JPG: (size 26193701) - finish split to 52 chunks
+ ...
+ INFO [source-775|task-0] Moving /tmp/queued/S_006/8ebdf68b-DJI_0765.JPG-00001-of-52.CHUNK to /tmp/finished/S_006/8ebdf68b-DJI_0765.JPG-00001-of-52.CHUNK
+ INFO [source-775|task-0] Moving /tmp/queued/S_006/8ebdf68b-DJI_0765.JPG-00002-of-52.CHUNK to /tmp/finished/S_006/8ebdf68b-DJI_0765.JPG-00002-of-52.CHUNK
+ INFO [source-775|task-0] Moving /tmp/queued/S_006/8ebdf68b-DJI_0765.JPG-00003-of-52.CHUNK to /tmp/finished/S_006/8ebdf68b-DJI_0765.JPG-00003-of-52.CHUNK
+ ...
+ INFO [source-775|task-0] Moving /tmp/queued/S_006/8ebdf68b-DJI_0765.JPG-00051-of-52.CHUNK to /tmp/finished/S_006/8ebdf68b-DJI_0765.JPG-00051-of-52.CHUNK
+ INFO [source-775|task-0] Moving /tmp/queued/S_006/8ebdf68b-DJI_0765.JPG-00052-of-52.CHUNK to /tmp/finished/S_006/8ebdf68b-DJI_0765.JPG-00052-of-52.CHUNK
+```
+
 
 
 #### File System
