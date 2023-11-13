@@ -121,15 +121,20 @@ Some differences exist with the spooldir connector:
 `file.charset` is preset to UTF-8
 
 ### Logging
-Logging output for a file split if a file called 8ebdf68b-DJI_0765.JPG (26193701 bytes) using a binary.chunk.size.bytes = 512000. 
+Logging output for a two JPG file splits using a binary.chunk.size.bytes = 512000. 
 ```
-INFO [field-team-S_006|task-0] 8ebdf68b-DJI_0765.JPG: (size 26193701 bytes) producing 52 chunks of 512000 bytes (com.github.markteehan.file.chunk.source.SpoolDirBinaryFileSourceTask:115)
-INFO [field-team-S_006|task-0] 8ebdf68b-DJI_0765.JPG: Sent 52 file chunks (com.github.markteehan.file.chunk.source.SpoolDirBinaryFileSourceTask:62)
+INFO [uploader-nn|task-0] Checking to ensure input.path '/tmp/queued' is writable
+INFO [uploader-nn|task-0] Checking to ensure error.path '/tmp/error' is writable
+INFO [uploader-nn|task-0] Checking to ensure finished.path '/tmp/finished' is writable
+INFO [uploader-nn|task-0] WorkerSourceTask{id=uploader-nn-0} Source task finished initialization and start
 
-INFO [field-team-S_006|task-0] Mavic2_230511_RGB0999.JPG: (size 15438513 bytes) producing 31 chunks of 512000 bytes (com.github.markteehan.file.chunk.source.SpoolDirBinaryFileSourceTask:115)
+INFO [uploader-nn|task-0] Found 2 potential files
+INFO [uploader-nn|task-0] ImageFile-001.JPG: (size 26193701 bytes) producing 52 chunks of 512000 bytes
+INFO [uploader-nn|task-0] ImageFile-001.JPG-00052-of-52.CHUNK: Finished. Produced 52 file chunks to Kafka.
 
-INFO [sink-S_006|task-0] 8ebdf68b-DJI_0765.JPG: TODO (size: 26193701. Original File size: 0) - merge from 52 chunks completed. (io.confluent.developer.connect.ChunkSinkTask:209)
-INFO [sink-S_006|task-0] Mavic2_230511_RGB0999.JPG: TODO (size: 15438513. Original File size: 0) - merge from 31 chunks completed. (io.confluent.developer.connect.ChunkSinkTask:209)
+INFO [uploader-nn|task-0] Found 1 potential files
+INFO [uploader-nn|task-0] ImageFile-002.JPG: (size 15438513 bytes) producing 31 chunks of 512000 bytes
+INFO [uploader-nn|task-0] ImageFile-002.JPG-00031-of-31.CHUNK: Finished. Produced 31 file chunks to Kafka.
 
 ```
 
