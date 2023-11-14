@@ -1,5 +1,8 @@
 # File Chunk Connector (Source & Sink)
 
+<img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/assets/16135308/4b3b4c25-a9c7-4b09-9c0e-339c7e696b84">
+
+
 ## Introduction
 The File Chunk Source Kafka Connector streams files though a Kafka topic by breaking each file into "chunks" that fit inside a kafka message. A matching File Chunk Sink connector consumes file chunks and re-assembles the Kafka messages into the original file.
 For example a 45.07MB .JPG image file using a chunk size of 512KB creates 89 Kafka messages: 88 chunks of 512KB and a final 89th chunk of 14KB. The chunk size must be less than the message.max.bytes for the Kafka cluster. The maximum chunk count for a file is 100,000 chunks.
