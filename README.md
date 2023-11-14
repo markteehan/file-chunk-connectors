@@ -117,11 +117,14 @@ Aside from common defaults specify the following:
 
 ### Compartison with Spooldir
 Some differences exist with the spooldir connector:
-`cleanup.policy` is MOVE: files are always moved from input.path to finished.path/error.path.   
-`task.partitioner` is unavailable as this version of the connector sets task.count=1
-`file.buffer.size.bytes` is set to the same value as `binary.chunk.size.bytes`
-`files.sort.attributes` is preset to NAMEASC
-`file.charset` is preset to UTF-8
+```
+        cleanup.policy is MOVE: files are always moved from input.path to finished.path/error.path.   
+      task.partitioner is unavailable as this version of the connector sets task.count=1
+file.buffer.size.bytes is set to the same value as `binary.chunk.size.bytes`
+ files.sort.attributes is preset to NAMEASC
+          file.charset is preset to UTF-8
+            batch.size is always 1 
+```
 
 ### Logging
 Logging output for a two JPG file splits using a binary.chunk.size.bytes = 512000. 
@@ -252,19 +255,6 @@ The Kafka topic to write the data to.
 *Importance:* HIGH
 
 *Type:* STRING
-
-
-
-##### `batch.size` - remove? batch.size should always be 1 if `binary.chunk.size.bytes` = `message.max.bytes`
-
-The number of records that should be returned with each batch.
-
-*Importance:* LOW
-
-*Type:* INT
-
-*Default Value:* 1000
-
 
 
 ##### `empty.poll.wait.ms`
