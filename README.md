@@ -51,7 +51,8 @@ These limitations are in place for the current release:
 
 
 ## License
-GPL v2. The source code is not yet available; pending some refactoring. Meanwhile the assembled jarfiles are available for download.
+This repo contains compiled jarfiles only, so there is no license restriction for usage.
+A [possible] future source-code release is likely to be restricted by a GPL v2 license.
 Please feel free to raise issues and I will endeavour to address them.
 
 
