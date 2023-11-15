@@ -4,13 +4,13 @@
 
 
 ## Introduction
-The File Chunk Source Kafka Connector streams files though a Kafka topic by breaking each file into "chunks" that fit inside a kafka message. A matching File Chunk Sink connector consumes file chunks and re-assembles the Kafka messages into the original file.
-For example a 45.07MB .JPG image file using a chunk size of 512KB creates 89 Kafka messages: 88 chunks of 512KB and a final 89th chunk of 14KB. The chunk size must be less than the message.max.bytes for the Kafka cluster. The maximum chunk count for a file is 100,000 chunks.
+The **File Chunk Source Connector** streams files though a Kafka topic by breaking each file into fixed-size "chunks" that fit inside a kafka message. A matching **File Chunk Sink Connector** consumes file chunks and re-assembles the Kafka messages into the original file.
+For example a 45.07MB .JPG image file using a chunk size of 512KB creates 89 Kafka messages: 88 fixed-size chunks of 512KB and a final 89th chunk of 14KB. The chunk size must be less than the **message.max.bytes** for the Kafka cluster. The maximum count of chunks for any file is 100,000 chunks.
 
 This connector can be used to stream binary files such as .JPEG, .AVI, encrypted or compressed content, ranging in size from megabytes to gigabytes.
 This connector borrows heavily from the spooldir source connectors written by Jeremy Custenborder. To stream and schemify text or avro content, use the spooldir source connectors - to stream binary files; use this connector.
 
-There are many options available to send files between two endpoints: sftp, scp, curl, wget: sending files using streaming via Kafka offers a number of benefits that are built into the kafka client, including send-retry, TLS encryption, authentication, access control, compression, replay and parallelism. Sending files using Kafka Connect adds framework support that facilitates field deployment: including release control, access control, logging, configuration etc.
+There are many options available to send files between two endpoints: rsync, sftp, scp, curl, wget: sending files using streaming via Kafka offers a number of benefits that are built into the kafka client, including resume/send-retry, TLS encryption, authentication, access control, compression, replay and parallelism. These are multiple tradeoffs to consider.
 
 This connector enables any Kafka cluster (including Confluent Cloud, Confluent Platform or Apache Kafka) to be used to stream files of any size.
 
@@ -25,8 +25,8 @@ It is suitable for data upload scenarios that include
 - Kafka consumer features such as low-cost fanout of data to multiple services simultaneously, parallelism of consumer threads, delivery guarantees
 
 ### Operation
-Similar to  "spooldir", this connector monitors an input directory for new files that match an input patterns. Eligible files are split into chunks of chunk size (
-binary.chunk.size.bytes) which are produced to a kafka topic before moving the file to the "finished" directory (or the "error" directory if any failure occurred). 
+Similar to  "spooldir", this connector monitors an input directory for new files that match an input patterns. Eligible files are split into fixed-size chunks of 
+_binary.chunk.size.bytes_ which are produced to a kafka topic before moving the file to the "finished" directory (or the "error" directory if any failure occurred). 
 The input directory on the sending device requires sufficient headroom to duplicate the largest file, since file chunks are written to the filesystem temporarily during streaming. Files are processed one at a time: the first queued file is chunked, sent and finished; before the second file is processed; and so on. 
 The connector observes & recreates subdirectories (to one level): if an eligible file is created in a subdirectory "field-team-056", then the sink connector will reassemble the file in a subdirectory of the same name.
 
