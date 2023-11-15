@@ -75,8 +75,8 @@ Copy the jarfiles for the source and sink connectors to your kafka connect plugi
 2. On Linux/Mac this is generally under share/confluent-hub-components, on Windows create  new directory kafka\plugins
 3. Copy these two jarfiles the newly created subdirectory.
 ```
-curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/kafka-connect-spooldir-2.0-SNAPSHOT.tar.gz
-curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-2.0-SNAPSHOT-jar-with-dependencies.jar
+curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-0.0.1-SNAPSHOT-jar-with-dependencies.jar
+curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-0.1-SNAPSHOT-jar-with-dependencies.jar
 ```
 3. Restart the Connect worker. Kafka Connect will discover and unpack each jarfile. 
 
