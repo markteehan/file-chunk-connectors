@@ -129,6 +129,7 @@ file.buffer.size.bytes is set to the same value as `binary.chunk.size.bytes`
 
 ### Logging
 Logging output for a two JPG file splits using a binary.chunk.size.bytes = 512000. 
+**Source Connector**
 ```
 INFO Checking to ensure input.path '/tmp/queued' is writable
 INFO Checking to ensure error.path '/tmp/error' is writable
@@ -142,7 +143,12 @@ INFO ImageFile-001.JPG-00052-of-52.CHUNK: Finished. Produced 52 file chunks to K
 INFO Found 1 potential files
 INFO ImageFile-002.JPG: (size 15438513 bytes) producing 31 chunks of 512000 bytes
 INFO ImageFile-002.JPG-00031-of-31.CHUNK: Finished. Produced 31 file chunks to Kafka.
+```
 
+**Sink Connector**
+```
+INFO [task-0] ImageFile-001.JPG:  (size 26193701 bytes) - merge from 52 chunks completed. (io.confluent.developer.connect.ChunkSinkTask:209)
+INFO [task-0] ImageFile-002.JPG:  (size 15438513 bytes) - merge from 31 chunks completed. (io.confluent.developer.connect.ChunkSinkTask:209)
 ```
 
 
