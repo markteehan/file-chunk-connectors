@@ -150,8 +150,8 @@ INFO ImageFile-002.JPG-00031-of-31.CHUNK: Finished. Produced 31 file chunks to K
 **Sink Connector**
 
 ```
-INFO [task-0] ImageFile-001.JPG:  (size 26193701 bytes) - merge from 52 chunks completed. (io.confluent.developer.connect.ChunkSinkTask:209)
-INFO [task-0] ImageFile-002.JPG:  (size 15438513 bytes) - merge from 31 chunks completed. (io.confluent.developer.connect.ChunkSinkTask:209)
+INFO [task-0] ImageFile-001.JPG:  (size 26193701 bytes) - merge from 52 chunks completed.
+INFO [task-0] ImageFile-002.JPG:  (size 15438513 bytes) - merge from 31 chunks completed.
 
 ```
 
