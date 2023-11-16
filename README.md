@@ -157,6 +157,9 @@ INFO [task-0] ImageFile-002.JPG:  (size 15438513 bytes) - merge from 31 chunks c
 
 
 
+
+## Configuration Properties
+
 #### File System
 ##### `error.path`
 
