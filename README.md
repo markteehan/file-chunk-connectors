@@ -4,6 +4,36 @@
 
 
 ## Introduction
+
+### TL;DR: the logging says it all...
+Logging output to stream two JPG files (using a binary.chunk.size.bytes = 512000).
+
+**Source Connector**
+```
+INFO Checking to ensure input.path '/tmp/queued' is writable
+INFO Checking to ensure error.path '/tmp/error' is writable
+INFO Checking to ensure finished.path '/tmp/finished' is writable
+INFO WorkerSourceTask{id=uploader-nn-0} Source task finished initialization and start
+
+INFO Found 2 potential files
+INFO ImageFile-001.JPG: (size 26193701 bytes) producing 52 chunks of 512000 bytes
+INFO ImageFile-001.JPG-00052-of-52.CHUNK: Finished. Produced 52 file chunks to Kafka.
+
+INFO Found 1 potential files
+INFO ImageFile-002.JPG: (size 15438513 bytes) producing 31 chunks of 512000 bytes
+INFO ImageFile-002.JPG-00031-of-31.CHUNK: Finished. Produced 31 file chunks to Kafka.
+
+```
+
+**Sink Connector**
+
+```
+INFO [task-0] ImageFile-001.JPG:  (size 26193701 bytes) - merge from 52 chunks completed.
+INFO [task-0] ImageFile-002.JPG:  (size 15438513 bytes) - merge from 31 chunks completed.
+
+```
+
+
 The **File Chunk Source Connector** streams files though a Kafka topic by breaking each file into fixed-size "chunks" that fit inside a kafka message. A matching **File Chunk Sink Connector** consumes file chunks and re-assembles the Kafka messages into the original file.
 For example a 45.07MB .JPG image file using a chunk size of 512KB creates 89 Kafka messages: 88 fixed-size chunks of 512KB and a final 89th chunk of 14KB. The chunk size must be less than the **message.max.bytes** for the Kafka cluster. The maximum count of chunks for any file is 100,000 chunks.
 
@@ -127,33 +157,6 @@ file.buffer.size.bytes is set to the same value as `binary.chunk.size.bytes`
             batch.size is always 1 
 ```
 
-### Logging
-Logging output for a two JPG file splits using a binary.chunk.size.bytes = 512000. 
-
-**Source Connector**
-```
-INFO Checking to ensure input.path '/tmp/queued' is writable
-INFO Checking to ensure error.path '/tmp/error' is writable
-INFO Checking to ensure finished.path '/tmp/finished' is writable
-INFO WorkerSourceTask{id=uploader-nn-0} Source task finished initialization and start
-
-INFO Found 2 potential files
-INFO ImageFile-001.JPG: (size 26193701 bytes) producing 52 chunks of 512000 bytes
-INFO ImageFile-001.JPG-00052-of-52.CHUNK: Finished. Produced 52 file chunks to Kafka.
-
-INFO Found 1 potential files
-INFO ImageFile-002.JPG: (size 15438513 bytes) producing 31 chunks of 512000 bytes
-INFO ImageFile-002.JPG-00031-of-31.CHUNK: Finished. Produced 31 file chunks to Kafka.
-
-```
-
-**Sink Connector**
-
-```
-INFO [task-0] ImageFile-001.JPG:  (size 26193701 bytes) - merge from 52 chunks completed.
-INFO [task-0] ImageFile-002.JPG:  (size 15438513 bytes) - merge from 31 chunks completed.
-
-```
 
 
 
