@@ -10,32 +10,32 @@ Logging output to stream two JPG files (using a binary.chunk.size.bytes = 512000
 
 **Source Connector**
 ```
-INFO Checking to ensure input.path '/tmp/queued' is writable
-INFO Checking to ensure error.path '/tmp/error' is writable
-INFO Checking to ensure finished.path '/tmp/finished' is writable
-INFO WorkerSourceTask{id=uploader-nn-0} Source task finished initialization and start
+Checking to ensure input.path '/tmp/queued' is writable
+Checking to ensure error.path '/tmp/error' is writable
+Checking to ensure finished.path '/tmp/finished' is writable
+WorkerSourceTask{id=uploader-nn-0} Source task finished initialization and start
 
-INFO Found 2 potential files
-INFO ImageFile-001.JPG: (size 26193701 bytes) producing 52 chunks of 512000 bytes
-INFO ImageFile-001.JPG-00052-of-52.CHUNK: Finished. Produced 52 file chunks to Kafka.
-
-INFO Found 1 potential files
-INFO ImageFile-002.JPG: (size 15438513 bytes) producing 31 chunks of 512000 bytes
-INFO ImageFile-002.JPG-00031-of-31.CHUNK: Finished. Produced 31 file chunks to Kafka.
+Found 5 potential files 
+someLargeFile.JPG: (size 16500000 bytes) producing 40 chunks 
+someLargeFile.JPG: Finished processing all chunks (sent 40 file chunk(s) to Kafka). MD5=c31f4dbb504d805c389a26d3680d0f7b
 
 ```
 
 **Sink Connector**
 
 ```
-INFO [task-0] ImageFile-001.JPG:  (size 26193701 bytes) - merge from 52 chunks completed.
-INFO [task-0] ImageFile-002.JPG:  (size 15438513 bytes) - merge from 31 chunks completed.
+someLargeFile.JPG: (size 16500000) - merge from 40 chunks completed MD5=c31f4dbb504d805c389a26d3680d0f7b
+
+OR
+ERROR someLargeFile.JPG: (size 16500000) - merge from 40 chunks failed - MD5 mismatch. MD5 (source)=c31f4dbb504d805c389a26d3680d0f7b MD5 (target)=889af9ce64b6395960aaf2a5e307cd6d
 
 ```
 
 
-The **File Chunk Source Connector** streams files though a Kafka topic by breaking each file into fixed-size "chunks" that fit inside a kafka message. A matching **File Chunk Sink Connector** consumes file chunks and re-assembles the Kafka messages into the original file.
-For example a 45.07MB .JPG image file using a chunk size of 512KB creates 89 Kafka messages: 88 fixed-size chunks of 512KB and a final 89th chunk of 14KB. The chunk size must be less than the **message.max.bytes** for the Kafka cluster. The maximum count of chunks for any file is 100,000 chunks.
+The **File Chunk Source Connector** streams files though a Kafka topic by breaking each file into fixed-size "chunks" that fit inside a kafka message. A matching **File Chunk Sink Connector** consumes file chunks and re-assembles the Kafka messages into the original file. 
+For example a 45.07MB .JPG image file using a chunk size of 512KB creates 89 Kafka messages: 88 fixed-size chunks of 512KB and a final 89th chunk of 14KB. The chunk size (default: 512KB) must be less than the **message.max.bytes** for the Kafka cluster. The maximum count of chunks for any file is 100,000 chunks. An MD5 checksum validates that the assembled target file matches the source file. 
+Any subdirectories found under the source (queued) directory are recreated in the target (download) directory - this enables multiple source connectors (each with different subdirectory names) to stream files to a single sink, with thet target files separated into different subdirectories.
+Parallel streams for source and sink are supported by setting "tasks.max" enabling high throughput operation. The Sink connector will iterate and sleep until all chunks have been found before reassembling the file.
 
 This connector can be used to stream binary files such as .JPEG, .AVI, encrypted or compressed content, ranging in size from megabytes to gigabytes.
 This connector borrows heavily from the spooldir source connectors written by Jeremy Custenborder. To stream and schemify text or avro content, use the spooldir source connectors - to stream binary files; use this connector.
@@ -43,11 +43,16 @@ This connector borrows heavily from the spooldir source connectors written by Je
 There are many options available to send files between two endpoints: rsync, sftp, scp, curl, wget: sending files using streaming via Kafka offers a number of benefits that are built into the kafka client, including resume/send-retry, TLS encryption, authentication, access control, compression, replay and parallelism. These are multiple tradeoffs to consider.
 
 This connector enables any Kafka cluster (including Confluent Cloud, Confluent Platform or Apache Kafka) to be used to stream files of any size.
+This repo contains the kafka connect plugin jarfiles, which you can add to any kafka connect server.
+The accompanying repo https://github.com/markteehan/file-chunk-tarballs contains a readymade stack (including the plugins, kafka connect, java, configuration properties and scripts) to start the source or sink on windows or linux using a "config" and then a "start". This uses connect-standalone (not connect-distributed). 
+If you are unfamiliar with Kafka connect, then I recommend starting with the tarballs stack.
+
+
 
 ## Scenarios
 It is suitable for data upload scenarios that include 
 - file-generating edge devices (including windows clients) where a kafka connect client is preferable to custom-code uploader deployment
-- sync filesystems contents to a remote server
+- sync filesystems contents to a remote server: this is only suitable for static (completed) files. It is unsuitable for mirroring open files
 - client endpoints with unreliable networking: Kafka client infinite-retries ensures eventual data delivery with no-touch intervention
 - a desire for sophisticated encryption (such as cipher selection) which can be challenging using other data-sender utilities
 - a desire for sophisticated SaaS based authentiation models (including OAUTH2) enabling credential-less client deployments
@@ -58,27 +63,30 @@ It is suitable for data upload scenarios that include
 Similar to  "spooldir", this connector monitors an input directory for new files that match an input patterns. Eligible files are split into fixed-size chunks of 
 _binary.chunk.size.bytes_ which are produced to a kafka topic before moving the file to the "finished" directory (or the "error" directory if any failure occurred). 
 The input directory on the sending device requires sufficient headroom to duplicate the largest file, since file chunks are written to the filesystem temporarily during streaming. Files are processed one at a time: the first queued file is chunked, sent and finished; before the second file is processed; and so on. 
-The connector observes & recreates subdirectories (to one level): if an eligible file is created in a subdirectory "field-team-056", then the sink connector will reassemble the file in a subdirectory of the same name.
+The connector observes & recreates subdirectories (to multiple levels): if an eligible file is created in a subdirectory "field-team-056", then the sink connector will reassemble the file in a subdirectory of the same name.
 
 
 ## Payloads
 Message payloads are encoded as bytestream: there is no use of message schemas. Any Kafka client can be used to consume events created by the source connector. The accompanying file-chunk-sink connector reassembles chunks as files to a local filesystem using metadata in the message headers. This borrows from the open-source file-sink connector. 
 
+## Immutability
+EOS is not required as there is no usage of keys/headers/offsets to detect replay of files: as the target data object is a file; replay of data from source recreates the target file, overwriting if it already exists. Retaining target files for as long as necessary can be used to absorb duplicates caused by data replay from source.
+Changing the subdirectory name on the sending machine (or placing files in a new subdirectory) will force creating of a new subdirectory at the target machine, which may be useful technique to replay data without overwriting existing target files.
 
-## Delivery guarantees
-Similar to spooldir, data can be replayed by moving files from finished.path to input.path. 
-The sink connector writes to a single directory, with a ".PROCESSING" extension while a file is being assembled.
-The sink connector writes a new file when the first chunk is consumed; subsequent chunks are appended in sequence, and the ".PROCESSING" extension is removed by renaming the file after writing the final chunk. Message metadata is used to check the chunk count for each file. 
+## Ordering
+With single partition operation, chunks are produced and consumed in order. With multi-partition operation, chunks arrive out of order but assembly of the final file starts when all chunks are available. File assembly is always in files order: since chunks are numbered monotonically, they are always assembled in order. At present sleep/iterate cycles for the sink connector are not configurable; this will be changed soon.
 
 
+## Change Log
+### Jan 2024
+- multi-task operation: parallelize by increasing the topic partitions and tasks.max for source and sink connectors
+- MDS verification: a reassembled files with a MD5 checksum mismatch (compared with the source files) returns a failure
+- although files chunks are consumed out of order, assembly enters a sleep & retry routine while chunks are streamed. This defaults to 3 iterations of 30 second intervals.
+  
 ## Limitations
 These limitations are in place for the current release:
-- tasks.count = 1 - queued files are processed by a single uploader task
-- partitions = 1 - single-partition operation to ensure out of the box ordering of chunks
 - maximum chunk count for any single file is 100,000
-- further testing is need to determine the maximum file size that can be sent
-- file integrity is determined by chunk count, other techniques (chunk size verification, MD5 UUID) will be added.
-
+- the maximum file size must fit inside the JVM of the source (and sink) machine (this is needed for MD5 verification)
 
 ## License
 This repo contains compiled jarfiles only, so there is no license restriction for usage.
@@ -105,8 +113,8 @@ Copy the jarfiles for the source and sink connectors to your kafka connect plugi
 2. On Linux/Mac this is generally under share/confluent-hub-components, on Windows create  new directory kafka\plugins
 3. Copy these two jarfiles the newly created subdirectory.
 ```
-curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-0.0.1-SNAPSHOT-jar-with-dependencies.jar
-curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-0.1-SNAPSHOT-jar-with-dependencies.jar
+curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-1.0-jar-with-dependencies.jar
+curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-1.0-jar-with-dependencies.jar
 ```
 3. Restart the Connect worker. Kafka Connect will discover and unpack each jarfile. 
 
@@ -114,14 +122,18 @@ curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/ma
 ## Connect Worker Properties
 Aside from common defaults specify the following:
 ```
+acks = ALL
+max.in.flight.requests.per.connection = 1
+retries = 2147483647
+retry.backoff.ms = 500
 producer.compression.type=none   # if the source files are already compressed (JPEG, AVI, etc)
 value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
 value.converter.schemas.enable=false
-key.converter=io.confluent.connect.json.JsonSchemaConverter
+key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
 key.converter.schemas.enable=false
 value.converter.schema.registry.url=http://localhost:8081
 key.converter.schema.registry.url=http://localhost:8081
-group.id=source-775
+group.id=file-chunk-group
 ```
 
 ## Source Connector Job Submit example
