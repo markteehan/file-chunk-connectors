@@ -158,20 +158,6 @@ Aside from common defaults specify the following:
 }}
 ```
 
-### Compartison with Spooldir
-Some differences exist with the spooldir connector:
-```
-        cleanup.policy is MOVE: files are always moved from input.path to finished.path/error.path.   
-      task.partitioner is unavailable as this version of the connector sets task.count=1
-file.buffer.size.bytes is set to the same value as `binary.chunk.size.bytes`
- files.sort.attributes is preset to NAMEASC
-          file.charset is preset to UTF-8
-            batch.size is always 1 
-```
-
-
-
-
 
 ## Configuration Properties
 
