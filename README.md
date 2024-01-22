@@ -67,7 +67,7 @@ COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send
  ```
 
 
- Create a ```chunk-source.json``` file with the following contents:
+ Create chunk-source.json file with the following contents:
 ```
 {
                                    "name": "file-chunk-source"
