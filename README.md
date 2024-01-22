@@ -56,12 +56,14 @@ Start Confluent Platform using the Confluent CLI confluent local commands. c
 Create a data directory and generate test data. 
 ### Linux:
 ```
+
 mkdir queued finished error download
 cp /var/log/install.log ./queued/install.log   (or any file as a test file to send)
 ```
 
 ### Windows:
 ```
+
 MKDIR queued finished error download
 COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send)
  ```
@@ -69,6 +71,7 @@ COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send
 
  Create chunk-source.json file with the following contents:
 ```
+
 {
                                    "name": "file-chunk-source"
 , "config":{
@@ -89,17 +92,20 @@ COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send
 Load the File Chunk Source connector.
 Caution You must include a double dash (--) between the topic name and your flag. For more information, see this post.
 ```
+
  confluent local services connect connector load file-chunk-source --config file-chunk-source.json
  ```
 _Important Don’t use the confluent local commands in production environments. _
 
 Confirm that the connector is in a RUNNING state.
 ```
+
 confluent local services connect connector status file-chunk-source
 ```
 		 
 Confirm that the messages are being sent to Kafka - note that the console output matches the content of the file: it may be binary.
 ```
+
 kafka-console-consumer \
 		    --bootstrap-server localhost:9092 \
 		    --topic file-chunk-events \
@@ -130,11 +136,13 @@ kafka-console-consumer \
  Load the File Chunk Sink connector. 
 
 ```
+
 confluent local services connect connector load file-chunk-sink --config file-chunk-sink.json
 ```
 
 Confirm that the connector is in a RUNNING state. 
 ```
+
 confluent local services connect connector status file-chunk-sink
 ```
 
