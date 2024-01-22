@@ -415,5 +415,5 @@ The interval (in seconds) between reattempts to reconstruct a file from its chun
 
 *Type:* INTEGER
 
-*Default Value:* 3o
+*Default Value:* 30
 
