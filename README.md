@@ -69,7 +69,7 @@ COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send
 ```
 
 
- Create chunk-source.json file with the following contents:
+ Create chunk-source.json file with the following contents to split files into chunks of 50k bytes.
  
 ```
 
@@ -84,14 +84,16 @@ COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send
 ,                    "input.file.pattern": ".*"
 ,                            "task.count": "1"
 ,                        "halt.on.error" : "FALSE"
-,              "binary.chunk.size.bytes" : "51024"
+,              "binary.chunk.size.bytes" : "50000"
 , "cleanup.policy.maintain.relative.path": "true"
 ,          "input.path.walk.recursively" : "true"
 }}
 ```
 
 Load the File Chunk Source connector.
-Caution You must include a double dash (--) between the topic name and your flag. For more information, see this post.
+
+_Caution You must include a double dash (--) between the topic name and your flag. For more information, see [this]([url](https://unix.stackexchange.com/questions/11376/what-does-double-dash-mean-also-known-as-bare-double-dash)) post._
+
 ```
 
  confluent local services connect connector load file-chunk-source --config file-chunk-source.json
