@@ -2,6 +2,147 @@
 
 <img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/assets/16135308/4b3b4c25-a9c7-4b09-9c0e-339c7e696b84">
 
+_TL;DR: the Kafka Connect File Chunk Source & Sink connectors are a fancy way to send a file somewhere else._
+
+The connectors are packaged either as Kafka Connect [plugins]([url](https://github.com/markteehan/file-chunk-connectors)) or as complete [tarballs]([url](https://github.com/markteehan/file-chunk-tarballs)) (that include Kafka, Java, the connectors and setup scripts) enabling low-friction deployment on windows or linux. Some users of these connectors desire to use Kafka client features (retries, partitions, encryption, authentication) to stream files from edge devices (Windows laptops) with poor connectivity. These connectors do not requires a license for use (they are not yet source-available).
+
+
+The Kafka Connect File Chunk Source & Sink connectors watch a directory for files and read the data as new files are written to the input directory. Once a file has been read, it will be placed into the configured ```finished.path``` directory.  Each file is produced to a topic as a stream of messages after splitting the file into chunks of ```binary.chunk.size.bytes```. Messages are serialised as bytes: files can contain any content: text, logs, image, video, any binary encoding. The chunk size must be <= message.max.bytes for the Kafka cluster. 
+
+The matching Sink connector consumes from the topic, using header metadata to reconstruct the file on a filesystem local to the Sink connector. The MD5 signature of the reconstructed target files must match the signature of the source file, otherwise an error is returned.  The connectors should be paired to form a complete data pipeline. Multipartition/multitask operation is supported.
+
+Subdirectories at source are recreated at target. For example consider 100 source connectors sending binary files from a local directory called queued/`hostname`.  The Sink connector reconstructs the files inside 100 subdirectories on the target machine, enabling subdirectory names (to multiple levels) to carry metadata.
+
+These connectors are based on the excellent [Spooldir]([url](https://github.com/jcustenborder/kafka-connect-spooldir)) connectors (created by Jeremy Custenborder) and the File-Sink connectors.
+
+## Features
+The File Chunk Source & Sink connectors include the following features:
+	•	At least once delivery
+	•	Multiple tasks
+
+### Exactly once delivery
+The File Chunk source and sink connector guarantee an exactly-once pipeline when they are run together - a combination of an at-least delivery guarantee for the source connector and duplicate handling by the sink connector. Consuming File Chunk messages from the topic using a client other than the File Chunk sink connector is not possible.
+
+### Multiple tasks
+The File Chunk connectors support running one or more tasks. You can specify the number of tasks in the tasks.max configuration parameter. Multiple tasks may improve performance when moving a large amount of data. The Sink connector handles chunk arrival in any order: the file is reconstructed when all chunks are available.
+
+
+## Installation
+### Install the File Chunk Source & Sink Connector Packages
+You can install this connector by manually downloading the ZIP file. These connectors are not available on Confluent Hub.
+#### Prerequisites
+Note You must install the connector on every machine where Connect will run.  
+_Install the connector manually_
+Download the jarfiles for the Source & Sink connectors and then follow the manual connector installation instructions.
+Deploy the Source/Sink connectors using the tarball.
+The file-chunk-tarballs repo is a self-contained tarball (=zipfile) containing the stack components run Kafka connect with these connectors. The tarball contains an uploader and a downloader: the streaming service starts on windows or on linux. Elevated privileges (admin or root account) are not required: the service runs in a CMD window. See the repo for deployment instructions.
+
+## License
+The File Chunk connectors do not require a License for use.
+
+## Configuration Properties
+For a complete list of configuration properties, see the specific connector documentation.
+For an example of how to get Kafka Connect connected to Confluent Cloud, see Connect Self-Managed Kafka Connect to Confluent Cloud.
+
+## Quick Start
+The following steps show the File Chunk Source & Sink connectors to stream a file to a Kafka topic named file-chunk-events. Create this topic in advance of running the example.
+
+### Prerequisites
+	•	Confluent Platform
+	•	Confluent CLI (requires separate installation)
+Install the connector the steps above for _Install the Connector Manually_
+Start Confluent Platform using the Confluent CLI confluent local commands. confluent local services start
+
+Create a data directory and generate test data. 
+### Linux:
+```
+mkdir queued finished error download
+cp /var/log/install.log ./queued/install.log   (or any file as a test file to send)
+```
+
+### Windows:
+```
+MKDIR queued finished error download
+COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send)
+ ```
+
+
+ Create a ```chunk-source.json``` file with the following contents:
+```
+{
+                                   "name": "file-chunk-source"
+, "config":{
+                                  "topic": "file-chunk-events"
+,                       "connector.class": "com.github.markteehan.file.chunk.source.SpoolDirBinaryFileSourceConnector"
+,                            "input.path": “/path/to/queued"
+,                            "error.path": "/path/to/error"
+,                         "finished.path": "/path/to/finished"
+,                    "input.file.pattern": ".*"
+,                            "task.count": "1"
+,                        "halt.on.error" : "FALSE"
+,              "binary.chunk.size.bytes" : "51024"
+, "cleanup.policy.maintain.relative.path": "true"
+,          "input.path.walk.recursively" : "true"
+}}
+```
+
+Load the File Chunk Source connector.
+Caution You must include a double dash (--) between the topic name and your flag. For more information, see this post.
+```
+ confluent local services connect connector load file-chunk-source --config file-chunk-source.json
+ ```
+_Important Don’t use the confluent local commands in production environments. _
+
+Confirm that the connector is in a RUNNING state.
+```
+confluent local services connect connector status file-chunk-source
+```
+		 
+Confirm that the messages are being sent to Kafka - note that the console output matches the content of the file: it may be binary.
+```
+kafka-console-consumer \
+		    --bootstrap-server localhost:9092 \
+		    --topic file-chunk-events \
+		    --from-beginning | jq '.'
+ ```
+	Start the Sink Connector:
+
+	Create a chunk-sink.json file with the following contents. Note that “topics” should always contain the same (single) topic name specified for the source connector. If the topic has multiple partitions then set tasks.max to the same number.
+```
+		
+		{
+		                           "name": "file-chunk-sink"
+		, "config":{
+		                         "topics": "file-chunk-events"
+		,               "connector.class": "io.confluent.developer.connect.ChunkSinkConnector"
+		,                     "tasks.max": "1"
+		,                    "output.dir": "/path/to/download"
+		,         "auto.register.schemas": "false"
+		,                 "schema.ignore": "true"
+		,     "schema.generation.enabled": "false"
+		,  "key.converter.schemas.enable": "false"
+		,"value.converter.schemas.enable": "false"
+		,          "schema.compatibility": "none"
+		,              "merge.iterations": "3"
+		,"merge.iterations.interval.secs": "30"
+		}}
+	
+ Load the File Chunk Sink connector. 
+
+```
+confluent local services connect connector load file-chunk-sink --config file-chunk-sink.json
+```
+
+Confirm that the connector is in a RUNNING state. 
+```
+confluent local services connect connector status file-chunk-sink
+```
+
+Confirm that the files are being written into the Download directory. 
+Note that with both connectors running on the same machine, the finished and download directories will contain the same contents.
+Copy larger files to the queued directory and observe that they are reconstructed in the download directory. 
+This Single-machine demo shows common operation: a common deployment pattern is to have many source connectors sending to one (or multiple) sink connectors. 
+
 
 ## Introduction
 
