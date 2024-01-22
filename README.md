@@ -66,10 +66,11 @@ cp /var/log/install.log ./queued/install.log   (or any file as a test file to se
 
 MKDIR queued finished error download
 COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send)
- ```
+```
 
 
  Create chunk-source.json file with the following contents:
+ 
 ```
 
 {
