@@ -70,7 +70,7 @@ Start Confluent Platform using the Confluent CLI confluent local commands. c
 Create a data directory and generate test data. 
 #### Linux:
 ```
-
+cd /tmp
 mkdir queued finished error download
 cp /var/log/install.log ./queued/install.log   (or any file as a test file to send)
 ```
