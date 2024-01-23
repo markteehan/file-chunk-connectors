@@ -67,7 +67,7 @@ The following steps show the File Chunk Source & Sink connectors to stream a fi
 Install the connector the steps above for _Install the Connector Manually_
 Start Confluent Platform using the Confluent CLI confluent local commands. confluent local services start
 
-Create a data directory and generate test data. 
+Create the source directories (queued, finished, error) and the sink directory (download)
 #### Linux:
 ```
 cd /tmp
@@ -82,37 +82,51 @@ MKDIR queued finished error download
 COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send)
 ```
 
+Create the topic:
 
- Create chunk-source.json file with the following contents to split files into chunks of 50k bytes.
+```
+kafka-topics --create --topic file-chunk-events --partitions 6 --bootstrap-server localhost:9092
+```
+
+### Source Connector
+Create a file chunk-source.properties with the following contents to split files into chunks of 50k bytes. The "converter" properties are needed to ensure that the default Connect worker serializer (generall Avro) is overwritten with the byteSerializer for this connector.
  
 ```
+name=file-chunk-source
+connector.class=com.github.markteehan.file.chunk.source.SpoolDirBinaryFileSourceConnector
+binary.chunk.size.bytes=50000
+input.file.pattern=.*
+topic=file-chunk-events
+input.path=/tmp/queued
+error.path=/tmp/error
+finished.path=/tmp/finished
+#
+task.count=1
+halt.on.error=false
+cleanup.policy.maintain.relative.path=true
+input.path.walk.recursively=true
+#
+value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+key.converter.schemas.enable=false
+value.converter.schemas.enable=false
 
-{
-                                   "name": "file-chunk-source"
-, "config":{
-                                  "topic": "file-chunk-events"
-,                       "connector.class": "com.github.markteehan.file.chunk.source.SpoolDirBinaryFileSourceConnector"
-,                            "input.path": “/path/to/queued"
-,                            "error.path": "/path/to/error"
-,                         "finished.path": "/path/to/finished"
-,                    "input.file.pattern": ".*"
-,                            "task.count": "1"
-,                        "halt.on.error" : "FALSE"
-,              "binary.chunk.size.bytes" : "50000"
-, "cleanup.policy.maintain.relative.path": "true"
-,          "input.path.walk.recursively" : "true"
-}}
 ```
+
+_Note: if you see this error then check for tabs or unnecessary spaces in the properties file_
+
+```
+"message": "Connector config {name=XX} contains no connector type"
+```
+
+
 
 Load the File Chunk Source connector:
 
-_Caution You must include a double dash (--) between the topic name and your flag. For more information, see [this]([url](https://unix.stackexchange.com/questions/11376/what-does-double-dash-mean-also-known-as-bare-double-dash)) post._
-
 ```
 
- confluent local services connect connector load file-chunk-source --config file-chunk-source.json
+ confluent local services connect connector load file-chunk-source --config file-chunk-source.properties
  ```
-_Important Don’t use the confluent local commands in production environments. _
 
 Confirm that the connector is in a RUNNING state.
 ```
@@ -120,42 +134,40 @@ Confirm that the connector is in a RUNNING state.
 confluent local services connect connector status file-chunk-source
 ```
 		 
-Confirm that the messages are being sent to Kafka - note that the console output matches the content of the file: it may be binary.
-```
 
-kafka-console-consumer \
-		    --bootstrap-server localhost:9092 \
-		    --topic file-chunk-events \
-		    --from-beginning | jq '.'
- ```
-	Start the Sink Connector:
-
-	Create a chunk-sink.json file with the following contents. Note that “topics” should always contain the same (single) topic name specified for the source connector. If the topic has multiple partitions then set tasks.max to the same number.
 ```
-		
-		{
-		                           "name": "file-chunk-sink"
-		, "config":{
-		                         "topics": "file-chunk-events"
-		,               "connector.class": "io.confluent.developer.connect.ChunkSinkConnector"
-		,                     "tasks.max": "1"
-		,                    "output.dir": "/path/to/download"
-		,         "auto.register.schemas": "false"
-		,                 "schema.ignore": "true"
-		,     "schema.generation.enabled": "false"
-		,  "key.converter.schemas.enable": "false"
-		,"value.converter.schemas.enable": "false"
-		,          "schema.compatibility": "none"
-		,              "merge.iterations": "3"
-		,"merge.iterations.interval.secs": "30"
-		}}
+### Sink Connector
+
+	Create a file file-chunk-sink.properties with the following contents. Note that “topics” should always contain the same (single) topic name specified for the source connector. If the topic has multiple partitions then set tasks.max to the same number. The "converter" properties are needed to ensure that the default Connect worker serializer (generall Avro) is overwritten with the byteSerializer for this connector.
+
+```
+connector.class=ChunkSinkConnector
+name=file-chunk-sink
+output.dir=/tmp/download
+topics=file-chunk-events
+merge.iterations=3
+merge.iterations.interval.secs=30
+#
+tasks.max=1
+auto.register.schemas=false
+schema.ignore=true
+schema.generation.enabled=false
+key.converter.schemas.enable=false
+value.converter.schemas.enable=false
+schema.compatibility=none
+#
+value.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+key.converter=org.apache.kafka.connect.converters.ByteArrayConverter
+key.converter.schemas.enable=false
+value.converter.schemas.enable=false
+
 ```
 	
- Load the File Chunk Sink connector:
+Load the File Chunk Sink connector:
 
 ```
 
-confluent local services connect connector load file-chunk-sink --config file-chunk-sink.json
+confluent local services connect connector load file-chunk-sink --config file-chunk-sink.properties
 ```
 
 Confirm that the connector is in a RUNNING state. 
@@ -163,6 +175,8 @@ Confirm that the connector is in a RUNNING state. 
 
 confluent local services connect connector status file-chunk-sink
 ```
+Confirm that the messages are being sent to Kafka - note that the console output matches the content of the file: it may be binary.
+
 
 Confirm that the files are being written into the Download directory. 
 Note that with both connectors running on the same machine, the finished and download directories will contain the same contents.
