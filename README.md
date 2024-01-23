@@ -38,8 +38,8 @@ Download the jarfiles for the Source & Sink connectors and then follow the manu
 Copy the jarfiles for the source and sink connectors to your kafka connect plugins directory and restart Kafka Connect.
 
 1. Create a directory under the `plugin.path` on your Connect worker.
-2. On Linux/Mac this is generally under share/confluent-hub-components, on Windows create  new directory kafka\plugins
-3. Copy these two jarfiles the newly created subdirectory:
+2. For Confluent this is generally under share/confluent-hub-components, for Apache Kafka create new directory kafka\plugins. 
+3. Copy these two jarfiles the subdirectory:
 ```
 curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-1.0-jar-with-dependencies.jar
 curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-1.0-jar-with-dependencies.jar
