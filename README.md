@@ -138,7 +138,7 @@ confluent local services connect connector status file-chunk-source
 ```
 ### Sink Connector
 
-	Create a file file-chunk-sink.properties with the following contents. Note that “topics” should always contain the same (single) topic name specified for the source connector. If the topic has multiple partitions then set tasks.max to the same number. The "converter" properties are needed to ensure that the default Connect worker serializer (generall Avro) is overwritten with the byteSerializer for this connector.
+	Create a file file-chunk-sink.properties with the following contents. Note that “topics” should always contain the same (single) topic name specified for the source connector. If the topic has multiple partitions then set tasks.max to the same number. The "converter" properties are needed to ensure that the default Connect worker serializer (generall Avro) is overwritten with the byteSerializer for this connector. Tasks.Max should always be > 1: additional tasks are needed to consume while other tasks reconstruct files. Set it to the largest-expected-concurrent-number-of-merging-files; plus one.
 
 ```
 connector.class=ChunkSinkConnector
@@ -148,7 +148,8 @@ topics=file-chunk-events
 merge.iterations=3
 merge.iterations.interval.secs=30
 #
-tasks.max=1
+tasks.max=10
+#
 auto.register.schemas=false
 schema.ignore=true
 schema.generation.enabled=false
