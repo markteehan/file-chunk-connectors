@@ -2,7 +2,20 @@
 
 <img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/assets/16135308/4b3b4c25-a9c7-4b09-9c0e-339c7e696b84">
 
-_TL;DR: the Kafka Connect File Chunk Source & Sink connectors are a fancy way to send a file somewhere else._
+## TL; DR:
+
+the Kafka Connect File Chunk Source & Sink connectors are a fancy way to send a file somewhere else._
+
+```
+Source Connector
+DRONE_A179281.AVI: (size 4771930 bytes) Starting produce of 97 chunks. 
+DRONE_A179281.AVI: Finished produce of 97 chunks, MD5=19b6efb31183a857e8168a6347927cc. 
+
+Sink Connector
+DRONE_A179281.AVI: Starting download of 97 chunks. 
+DRONE_A179281.AVI: (size 4771930 bytes) Finished download of 97 chunks, md5=19b6efb31183a857e8168a6347927cc. 
+```
+
 
 The connectors are packaged either as Kafka Connect [plugins]([url](https://github.com/markteehan/file-chunk-connectors)) or as complete [tarballs]([url](https://github.com/markteehan/file-chunk-tarballs)) (that include Kafka, Java, the connectors and setup scripts) enabling low-friction deployment on windows or linux. Some users of these connectors desire to use Kafka client features (retries, partitions, encryption, authentication) to stream files from edge devices (Windows laptops) with poor connectivity. These connectors do not requires a license for use (they are not yet source-available).
 
