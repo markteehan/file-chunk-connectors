@@ -199,32 +199,6 @@ Copy larger files to the queued directory and observe that they are reconstructe
 This Single-machine demo shows common operation: a common deployment pattern is to have many source connectors sending to one (or multiple) sink connectors. 
 
 
-## Logging
-Logging output to stream two JPG files (using a binary.chunk.size.bytes = 512000).
-
-**File Chunk Source Connector**
-```
-Checking to ensure input.path '/tmp/queued' is writable
-Checking to ensure error.path '/tmp/error' is writable
-Checking to ensure finished.path '/tmp/finished' is writable
-WorkerSourceTask{id=uploader-nn-0} Source task finished initialization and start
-
-Found 5 potential files 
-someLargeFile.JPG: (size 16500000 bytes) producing 40 chunks 
-someLargeFile.JPG: Finished processing all chunks (sent 40 file chunk(s) to Kafka). MD5=c31f4dbb504d805c389a26d3680d0f7b
-
-```
-
-**File Chunk Sink Connector**
-
-```
-someLargeFile.JPG: (size 16500000) - merge from 40 chunks completed MD5=c31f4dbb504d805c389a26d3680d0f7b
-
-OR
-ERROR someLargeFile.JPG: (size 16500000) - merge from 40 chunks failed - MD5 mismatch. MD5 (source)=c31f4dbb504d805c389a26d3680d0f7b MD5 (target)=889af9ce64b6395960aaf2a5e307cd6d
-
-```
-
 ## Deployment Uses 
 This connector can be used to stream binary files such as .JPEG, .AVI, encrypted or compressed content, ranging in size from megabytes to gigabytes.
 This connector borrows heavily from the spooldir source connectors written by Jeremy Custenborder. To stream and schemify text or avro content, use the spooldir source connectors - to stream binary files; use this connector.
