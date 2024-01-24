@@ -36,9 +36,8 @@ The File Chunk Source & Sink connectors include the following features:
 ### Exactly once delivery
 The File Chunk source and sink connector guarantee an exactly-once pipeline when they are run together - a combination of an at-least delivery guarantee for the source connector and duplicate handling by the sink connector. Consuming File Chunk messages from the topic using a client other than the File Chunk sink connector is not possible.
 
-### Multiple tasks
-The File Chunk connectors support running one or more tasks. You can specify the number of tasks in the tasks.max configuration parameter. Multiple tasks may improve performance when moving a large amount of data. The Sink connector handles chunk arrival in any order: the file is reconstructed when all chunks are available.
-
+### Single task
+The File Chunk connectors support running one task, with one topic partition. Multi-partition operation is planned.
 
 ## Installation
 ### Install the File Chunk Source & Sink Connector Packages
