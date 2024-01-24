@@ -9,7 +9,7 @@ The connectors are packaged either as Kafka Connect [plugins]([url](https://gith
 
 The Kafka Connect File Chunk Source & Sink connectors watch a directory for files and read the data as new files are written to the input directory. Once a file has been read, it will be placed into the configured ```finished.path``` directory.  Each file is produced to a topic as a stream of messages after splitting the file into chunks of ```binary.chunk.size.bytes```. Messages are serialised as bytes: files can contain any content: text, logs, image, video, any binary encoding. The chunk size must be <= message.max.bytes for the Kafka cluster. 
 
-The matching Sink connector consumes from the topic, using header metadata to reconstruct the file on a filesystem local to the Sink connector. The MD5 signature of the reconstructed target files must match the signature of the source file, otherwise an error is returned.  The connectors should be paired to form a complete data pipeline. Multipartition/multitask operation is supported.
+The matching Sink connector consumes from the topic, using header metadata to reconstruct the file on a filesystem local to the Sink connector. The MD5 signature of the reconstructed target files must match the signature of the source file, otherwise an error is returned.  The connectors should be paired to form a complete data pipeline. Multipartition/multitask operation is not yet supported - the pipeline must run using a single-partition topic and tasks=1.
 
 Subdirectories at source are recreated at target. For example consider 100 source connectors sending binary files from a local directory called queued/`hostname`.  The Sink connector reconstructs the files inside 100 subdirectories on the target machine, enabling subdirectory names (to multiple levels) to carry metadata.
 
@@ -82,10 +82,10 @@ MKDIR queued finished error download
 COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send)
 ```
 
-Create the topic:
+Create the topic - note that the topic must have a single partition. Multi-partition support is planned.
 
 ```
-kafka-topics --create --topic file-chunk-events --partitions 6 --bootstrap-server localhost:9092
+kafka-topics --create --topic file-chunk-events --partitions 1 --bootstrap-server localhost:9092
 ```
 
 ### Source Connector
@@ -138,7 +138,8 @@ confluent local services connect connector status file-chunk-source
 ```
 ### Sink Connector
 
-	Create a file file-chunk-sink.properties with the following contents. Note that “topics” should always contain the same (single) topic name specified for the source connector. If the topic has multiple partitions then set tasks.max to the same number. The "converter" properties are needed to ensure that the default Connect worker serializer (generall Avro) is overwritten with the byteSerializer for this connector. Tasks.Max should always be > 1: additional tasks are needed to consume while other tasks reconstruct files. Set it to the largest-expected-concurrent-number-of-merging-files; plus one.
+	Create a file file-chunk-sink.properties with the following contents. Note that “topics” should always contain the same (single) topic name specified for the source connector. This must be a single-partition topic. Set tasks.max=1.
+The "converter" properties are needed to ensure that the default Connect worker serializer (generall Avro) is overwritten with the byteSerializer for this connector. 
 
 ```
 connector.class=ChunkSinkConnector
@@ -148,7 +149,7 @@ topics=file-chunk-events
 merge.iterations=3
 merge.iterations.interval.secs=30
 #
-tasks.max=10
+tasks.max=1
 #
 auto.register.schemas=false
 schema.ignore=true
@@ -245,8 +246,7 @@ The connector observes & recreates subdirectories (to multiple levels): if an el
 Message payloads are encoded as bytestream: there is no use of message schemas. Any Kafka client can be used to consume events created by the source connector. The accompanying file-chunk-sink connector reassembles chunks as files to a local filesystem using metadata in the message headers. This borrows from the open-source file-sink connector. 
 
 ## Ordering
-With single partition operation, chunks are produced and consumed in order. With multi-partition operation, chunks arrive out of order but assembly of the final file starts when all chunks are available. File assembly is always in files order: since chunks are numbered monotonically, they are always assembled in order. At present sleep/iterate cycles for the sink connector are not configurable; this will be changed soon.
-
+With single partition operation, chunks are produced and consumed in order. Multi-partition support is planned.
   
 ## Limitations
 These limitations are in place for the current release:
