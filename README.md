@@ -4,7 +4,7 @@
 
 ## TL; DR:
 
-the Kafka Connect File Chunk Source & Sink connectors are a fancy way to send a file somewhere else._
+The Kafka Connect File Chunk Source & Sink connectors are a fancy way to send a file somewhere else.
 
 ```
 Source Connector
@@ -13,16 +13,16 @@ DRONE_A179281.AVI: Finished produce of 97 chunks, MD5=19b6efb31183a857e8168a6347
 
 Sink Connector
 DRONE_A179281.AVI: Starting download of 97 chunks. 
-DRONE_A179281.AVI: (size 4771930 bytes) Finished download of 97 chunks, md5=19b6efb31183a857e8168a6347927cc. 
+DRONE_A179281.AVI: (size 4771930 bytes) Finished download of 97 chunks, source/target md5 matches 19b6efb31183a857e8168a6347927cc. 
 ```
 
 
-The connectors are packaged either as Kafka Connect [plugins]([url](https://github.com/markteehan/file-chunk-connectors)) or as complete [tarballs]([url](https://github.com/markteehan/file-chunk-tarballs)) (that include Kafka, Java, the connectors and setup scripts) enabling low-friction deployment on windows or linux. Some users of these connectors desire to use Kafka client features (retries, partitions, encryption, authentication) to stream files from edge devices (Windows laptops) with poor connectivity. These connectors do not requires a license for use (they are not yet source-available).
+The connectors are packaged either as Kafka Connect [plugins]([url](https://github.com/markteehan/file-chunk-connectors)) or as complete [tarballs]([url](https://github.com/markteehan/file-chunk-tarballs)) (that include Kafka, Java, the connectors and setup scripts) enabling low-friction deployment on windows or linux. Some users of these connectors desire to use Kafka client features (retries, partitions, encryption, authentication) to stream files from edge devices (Windows laptops) with poor connectivity. These connectors do not requires a license for use (they are not source-available).
 
 
-The Kafka Connect File Chunk Source & Sink connectors watch a directory for files and read the data as new files are written to the input directory. Once a file has been read, it will be placed into the configured ```finished.path``` directory.  Each file is produced to a topic as a stream of messages after splitting the file into chunks of ```binary.chunk.size.bytes```. Messages are serialised as bytes: files can contain any content: text, logs, image, video, any binary encoding. The chunk size must be <= message.max.bytes for the Kafka cluster. 
+The Kafka Connect File Chunk Source & Sink connectors watch a directory for files and read the data as new files are written to the input directory. Once a file has been read, it will be placed into the configured ```finished.path``` directory.  Each file is produced to a topic as a stream of messages after splitting the file into chunks of ```binary.chunk.size.bytes```. Messages are serialised as bytes: files can contain any content: text, logs, image, video, any binary encoding. The configured ```chunk size``` must be <= message.max.bytes for the Kafka cluster. 
 
-The matching Sink connector consumes from the topic, using header metadata to reconstruct the file on a filesystem local to the Sink connector. The MD5 signature of the reconstructed target files must match the signature of the source file, otherwise an error is returned.  The connectors should be paired to form a complete data pipeline. Multipartition/multitask operation is not yet supported - the pipeline must run using a single-partition topic and tasks=1.
+The matching Sink connector consumes from the topic, using header metadata to reconstruct the file on a filesystem local to the Sink connector. The MD5 signature of the reconstructed target files must match the signature of the source file, otherwise an error is returned.  The connectors should be paired to form a complete data pipeline. Multipartition/multitask operation is now supported (Feb 3 2024) - the source and sink connectors can be configured with multiple tasks, and the topic can have multiple partitions. The Sink connector re-orders kafka messages when merging the file.
 
 Subdirectories at source are recreated at target. For example consider 100 source connectors sending binary files from a local directory called queued/`hostname`.  The Sink connector reconstructs the files inside 100 subdirectories on the target machine, enabling subdirectory names (to multiple levels) to carry metadata.
 
@@ -36,8 +36,8 @@ The File Chunk Source & Sink connectors include the following features:
 ### Exactly once delivery
 The File Chunk source and sink connector guarantee an exactly-once pipeline when they are run together - a combination of an at-least delivery guarantee for the source connector and duplicate handling by the sink connector. Consuming File Chunk messages from the topic using a client other than the File Chunk sink connector is not possible.
 
-### Single task
-The File Chunk connectors support running one task, with one topic partition. Multi-partition operation is planned.
+### Multiple tasks
+The File Chunk connectors support running multiple tasks with multiple topic partitions. Upload and download of chunks operates with multi-task parallelism, enabling files to be sent to the target faster than a single-threaded sender.
 
 ## Installation
 ### Install the File Chunk Source & Sink Connector Packages
@@ -53,7 +53,7 @@ Copy the jarfiles for the source and sink connectors to your kafka connect plugi
 2. For Confluent this is generally under share/confluent-hub-components, for Apache Kafka create new directory kafka\plugins. 
 3. Copy these two jarfiles the subdirectory:
 ```
-curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-1.0-jar-with-dependencies.jar
+curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-2.0-jar-with-dependencies.jar
 curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-1.0-jar-with-dependencies.jar
 ```
 3. Restart the Connect worker. Kafka Connect will discover and unpack each jarfile. 
@@ -94,7 +94,7 @@ MKDIR queued finished error download
 COPY  somefile.JPG .\queued\somefile.JPG (choose any file as a test file to send)
 ```
 
-Create the topic - note that the topic must have a single partition. Multi-partition support is planned.
+Create the topic - test operation with a single partition topic before setting up multi partition(/task) pipelines.
 
 ```
 kafka-topics --create --topic file-chunk-events --partitions 1 --bootstrap-server localhost:9092
@@ -200,9 +200,9 @@ This Single-machine demo shows common operation: a common deployment pattern is 
 
 ## Deployment Uses 
 This connector can be used to stream binary files such as .JPEG, .AVI, encrypted or compressed content, ranging in size from megabytes to gigabytes.
-This connector borrows heavily from the spooldir source connectors written by Jeremy Custenborder. To stream and schemify text or avro content, use the spooldir source connectors - to stream binary files; use this connector.
+To stream and schemify text or avro content, use the spooldir source connectors - to stream binary files; use this connector.
 
-There are many options available to send files between two endpoints: rsync, sftp, scp, curl, wget: sending files using streaming via Kafka offers a number of benefits that are built into the kafka client, including resume/send-retry, TLS encryption, authentication, access control, compression, replay and parallelism. These are multiple tradeoffs to consider.
+There are many options available to send files between two endpoints: rsync, sftp, scp, curl, wget: sending files using streaming via Kafka offers a number of benefits that are built into the kafka client, including resume/send-retry, TLS encryption, authentication, access control, compression, replay and parallelism. These are multiple tradeoffs to consider. With support for multi partition/multi task operation; this connector enables stream-sending of a single file with multiple parallel threads - should may be faster than sending the file using any single-threaded utility.
 
 This connector enables any Kafka cluster (including Confluent Cloud, Confluent Platform or Apache Kafka) to be used to stream files of any size.
 The [tarballs repo]([url](https://github.com/markteehan/file-chunk-tarballs)) contains a readymade stack (including the plugins, kafka connect, java, configuration properties and scripts) to start the source or sink on windows or linux using a "config" and then a "start". This uses connect-standalone (not connect-distributed). 
@@ -241,7 +241,6 @@ These limitations are in place for the current release:
 
 ## License
 This repo contains compiled jarfiles only, so there is no license restriction for usage.
-A [possible] future source-code release is likely to be restricted by a GPL v2 license.
 Please feel free to raise issues and I will endeavour to address them.
 
 # Troubleshooting
