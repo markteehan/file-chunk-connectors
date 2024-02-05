@@ -17,9 +17,27 @@ DRONE_A179281.AVI: (size 4771930 bytes) Finished download of 97 chunks, source/t
 ```
 
 
-The connectors are packaged either as Kafka Connect [plugins]([url](https://github.com/markteehan/file-chunk-connectors)) or as complete [tarballs]([url](https://github.com/markteehan/file-chunk-tarballs)) (that include Kafka, Java, the connectors and setup scripts) enabling low-friction deployment on windows or linux. Some users of these connectors desire to use Kafka client features (retries, partitions, encryption, authentication) to stream files from edge devices (Windows laptops) with poor connectivity. These connectors do not requires a license for use (they are not source-available).
+## Whats the Why?
+Three reasons for streaming file transfer:
+
+### Faster throughput
+Command line data senders (such as rysnc, scp, ftp, curl) operate single-threaded per file: one thread reads (for example) a 2GB file sequentially from the first to the last byte - this has not changed in decades. The streaming-file transfer splits the file into 512KB chunks with ten (or more) threads streaming file chunks in parallel, achieving much faster data throughput between servers, or from onprem to cloud. Similarly to event streaming, the goal is to maximize the use of available resources and improve overall performance in data transfer operations.
+
+### Fault tolerance
+Command line data send utilities require a reliable network: if connectivity is interrupted teh data transfer must restart. While some utilities have improved this; in general restart-from-zero is the recovery mechanism. The file-chunk connectors use a streaming protocol which has sophisticated behaviour for network interruptions: including replay, infinite retry, inflight data, backoff and batch management. This applies to data transfers using enterprise connectivity where cmd line utilities reduce the service-level; or from edge or remote endpoints where network latency and reliability may be lower than in the main data center.
+
+### Expand the role of your Kafka clusters
+If your organization already uses Kafka for event-driven processing (or for logging or stream processing) then the same Kafka infrastructure can be used for streaming file transfer. The file chunk connectors are standard Kafka Connect plugins.
 
 
+## Packaging
+The connectors are packaged either as Kafka Connect Plugins [plugins]([url](https://github.com/markteehan/file-chunk-connectors)) or as complete [tarballs]([url](https://github.com/markteehan/file-chunk-tarballs)) (that include Kafka, Java, the connectors and setup scripts) enabling low-friction deployment on windows or linux. Use the Plugins on a Kafka Connect server, alongside other connector jobs and tasks. Use the tarball for one-key install on laptop/desktop linux or windows machines that will stream data to a central kafka server (for example maintenance/field teams, vehicle upload, offshore or any endpoint with intermittent connectivity.
+
+## License
+These connectors do not requires a license for use of the current (or prior) versions. They are not source-available.
+
+
+## Overview
 The Kafka Connect File Chunk Source & Sink connectors watch a directory for files and read the data as new files are written to the input directory. Once a file has been read, it will be placed into the configured ```finished.path``` directory.  Each file is produced to a topic as a stream of messages after splitting the file into chunks of ```binary.chunk.size.bytes```. Messages are serialised as bytes: files can contain any content: text, logs, image, video, any binary encoding. The configured ```chunk size``` must be <= message.max.bytes for the Kafka cluster. 
 
 The matching Sink connector consumes from the topic, using header metadata to reconstruct the file on a filesystem local to the Sink connector. The MD5 signature of the reconstructed target files must match the signature of the source file, otherwise an error is returned.  The connectors should be paired to form a complete data pipeline. Multipartition/multitask operation is supported - the source and sink connectors can be configured with multiple tasks, and the topic can have multiple partitions. The Sink connector re-orders kafka messages when merging the file.
