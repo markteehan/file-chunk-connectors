@@ -147,19 +147,17 @@ confluent local services connect connector status file-chunk-source
 ```
 		 
 
-```
 ### Sink Connector
 
 	Create a file file-chunk-sink.properties with the following contents. Note that “topics” should always contain the same (single) topic name specified for the source connector. This must be a single-partition topic. Set tasks.max=1.
 The "converter" properties are needed to ensure that the default Connect worker serializer (generall Avro) is overwritten with the byteSerializer for this connector. 
 
 ```
+
 connector.class=ChunkSinkConnector
 name=file-chunk-sink
 output.dir=/tmp/download
 topics=file-chunk-events
-merge.iterations=3
-merge.iterations.interval.secs=30
 #
 tasks.max=1
 #
@@ -189,6 +187,7 @@ Confirm that the connector is in a RUNNING state. 
 
 confluent local services connect connector status file-chunk-sink
 ```
+
 Confirm that the messages are being sent to Kafka - note that the console output matches the content of the file: it may be binary.
 
 
@@ -397,23 +396,23 @@ The amount of time to wait if a poll returns an empty list of records.
 
 ## Sink Connector configuration properties
 
-##### `merge.iterations`
+##### `output.dir`
 
-The total number of times that the connect will attempt to reconstruct a file from its chunks. If any chunks are missing then a further attempt will be required. In some sceanrios, network conditions may require a higher value - for example if a high percentage of chunks arrive out of order or if a source connector is experiencing a high retry count due to poor network connectivity.
-
-*Importance:* HIGH
-
-*Type:* INTEGER
-
-*Default Value:* 3
-
-##### `merge.iterations.interval.secs`
-
-The interval (in seconds) between reattempts to reconstruct a file from its chunks. Increasing this property increases the time that the connector will wait for all chunks for a file to be consumed.
+The directory to write files that have been processed. This directory must exist and be writable by the user running Kafka Connect.
 
 *Importance:* HIGH
 
-*Type:* INTEGER
+*Type:* STRING
 
-*Default Value:* 30
+*Default Value:* none
+
+##### `topics`
+
+The topic to consume data from a paired File Chunk Source connector. At present one topic is supported. Multiple producers (source connectors) configured to produce to the same topic is supported. The topic can have one, or multiple partitions. When using multiple partitions it is recommended to set tasks.count to match the partition count. The topic should be created manually prior to startup of the source or sink connectors. A schema registry is not required, as all file-chunk events are serialized as bytestream.
+
+*Importance:* HIGH
+
+*Type:* STRING
+
+*Default Value:* none
 
