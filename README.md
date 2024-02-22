@@ -48,14 +48,23 @@ These connectors are based on the excellent [Spooldir]([url](https://github.com/
 
 ## Features
 The File Chunk Source & Sink connectors include the following features:
-	•	At least once delivery
+	•	Exactly once delivery
 	•	Multiple tasks
-
+ 	•	Throughput Statistics
+ 
 ### Exactly once delivery
 The File Chunk source and sink connector guarantee an exactly-once pipeline when they are run together - a combination of an at-least delivery guarantee for the source connector and duplicate handling by the sink connector. Consuming File Chunk messages from the topic using a client other than the File Chunk sink connector is not possible.
 
 ### Multiple tasks
 The File Chunk connectors support running multiple tasks with multiple topic partitions. Upload and download of chunks operates with multi-task parallelism, enabling files to be sent to the target faster than a single-threaded sender.
+
+### Throughput Statistics
+A one-line summary of throughput for each file is logged to facilitiate tuning of tasks/partitions and chunk sizing.
+
+```
+ A_Haul_in_One.mp4: 12288 KB merged in 212 secs using 4 producer tasks. Bytes/sec=57,962. 
+```
+
 
 ## Installation
 ### Install the File Chunk Source & Sink Connector Packages
@@ -71,7 +80,7 @@ Copy the jarfiles for the source and sink connectors to your kafka connect plugi
 2. For Confluent this is generally under share/confluent-hub-components, for Apache Kafka create new directory kafka\plugins. 
 3. Copy these two jarfiles the subdirectory:
 ```
-curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-2.0-jar-with-dependencies.jar
+curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-2.1-jar-with-dependencies.jar
 curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-1.0-jar-with-dependencies.jar
 ```
 3. Restart the Connect worker. Kafka Connect will discover and unpack each jarfile. 
