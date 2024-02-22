@@ -21,13 +21,31 @@ DRONE_A179281.AVI: (size 4771930 bytes) Finished download of 97 chunks, source/t
 Three reasons for streaming file transfer:
 
 ### Faster throughput
-Command line data senders (such as rysnc, scp, ftp, curl) operate single-threaded per file: one thread reads (for example) a 2GB file sequentially from the first to the last byte - this has not changed in decades. The streaming-file transfer splits the file into 512KB chunks with ten (or more) threads streaming file chunks in parallel, achieving much faster data throughput between servers, or from onprem to cloud. Similarly to event streaming, the goal is to maximize the use of available resources and improve overall performance in data transfer operations.
+Command line data senders (such as rysnc, scp, ftp, curl) operate single-threaded per file: one thread reads (for example) a 2GB file sequentially from the first to the last byte - this has not changed in decades. The streaming-file transfer splits the file into 1MB chunks with ten (or more) threads streaming file chunks in parallel, achieving much faster data throughput between servers, or from onprem to cloud. Similar to event streaming, the goal is to maximize the use of available resources and improve overall performance in data transfer operations.
 
 ### Fault tolerance
-Command line data send utilities require a reliable network: if connectivity is interrupted teh data transfer must restart. While some utilities have improved this; in general restart-from-zero is the recovery mechanism. The file-chunk connectors use a streaming protocol which has sophisticated behaviour for network interruptions: including replay, infinite retry, inflight data, backoff and batch management. This applies to data transfers using enterprise connectivity where cmd line utilities reduce the service-level; or from edge or remote endpoints where network latency and reliability may be lower than in the main data center.
+Command line data send utilities require a reliable network: if connectivity is interrupted then data transfer must restart. While some utilities have improved this; in general restart-from-zero is the recovery mechanism. The file-chunk connectors use a streaming protocol which has sophisticated behaviour for network interruptions: including replay, infinite retry, inflight data, backoff and batch management. 
 
 ### Expand the role of your Kafka clusters
 If your organization already uses Kafka for event-driven processing (or for logging or stream processing) then the same Kafka infrastructure can be used for streaming file transfer. The file chunk connectors are standard Kafka Connect plugins.
+
+## But Kafka is not for files...
+Why not? There are patterns for file-send scenarios on Kafka: sometimes they can be used; sometimes not.
+
+### File locators, not files
+
+Locators generally require shared object storage accessible enterprise wide. This is common on cloud platforms, but not on-prem.
+
+### Chunk the file
+
+File reassembly for multiple senders is hard. The Springboot/python development cost can be substantial.
+
+### BLOBs
+
+Databases handle BLOBs (binary large objects) - so (IMHO) should Kafka. While a byte-encoded small message (a BSOB?) is unproblematic, the lack of BLOB support (beyond the max.message.size) makes integration with enterprise systems (SAP ERP etc) more problematic than necessary.
+
+
+
 
 
 ## Packaging
@@ -258,12 +276,14 @@ The connector observes & recreates subdirectories (to multiple levels): if an el
 Message payloads are encoded as bytestream: there is no use of message schemas. Any Kafka client can be used to consume events created by the source connector. The accompanying file-chunk-sink connector reassembles chunks as files to a local filesystem using metadata in the message headers. This borrows from the open-source file-sink connector. 
 
 ## Ordering
-With single partition operation, chunks are produced and consumed in order. Multi-partition support is planned.
+With single partition operation, chunks are produced and consumed in order. For multi-partition operation, chunks are produced and consumed in indeterminate order. the chunk connector caches out of order messages to files temporarily while reassembling the files.
   
 ## Limitations
 These limitations are in place for the current release:
 - maximum chunk count for any single file is 100,000
 - the maximum file size must fit inside the JVM of the source (and sink) machine (this is needed for MD5 verification)
+- the source connector should operate on a single-node Kafka Connect cluster: this is becuase each task must be able to locate the files in the input.dir locally. Multiple source connectors, however can send to a single topic on the same Kafka cluster.
+- the sink connector should operate on a single-node Kafka Connect cluster: this is because each task must be able to write files to the download subdirectories (chunks, locked, builds and merged) that are accessible to the other tasks running on the Kafka Connect server.
 
 ## License
 This repo contains compiled jarfiles only, so there is no license restriction for usage.
@@ -337,19 +357,6 @@ The directory to place files that have been successfully processed. This directo
 *Type:* STRING
 
 
-
-##### `halt.on.error`
-
-Should the task halt when it encounters an error or continue to the next file.
-
-*Importance:* HIGH
-
-*Type:* BOOLEAN
-
-*Default Value:* true
-
-
-
 ##### `binary.chunk.size.bytes`
 
 The size of each data chunk that will be produced to the topic. The size must be < Kafka cluster message.max.bytes. 
@@ -370,30 +377,17 @@ See https://kafka.apache.org/documentation/#brokerconfigs_message.max.bytes";
 
 ##### `file.minimum.age.ms`
 
-The amount of time in milliseconds after the file was last written to before the file can be processed.
+The amount of time in milliseconds after the file was last written to before the file can be processed. This should be set appropriatly to enable large files to be copied into the input.dir before it is processed. 
 
 *Importance:* LOW
 
 *Type:* LONG
 
-*Default Value:* 0
+*Default Value:* 5000
 
 *Validator:* [0,...]
 
 
-
-
-##### `processing.file.extension`
-
-Before a file is processed, a flag is created in its directory to indicate the file is being handled. The flag file has the same name as the file, but with this property appended as a suffix.
-
-*Importance:* LOW
-
-*Type:* STRING
-
-*Default Value:* .PROCESSING
-
-*Validator:* Matches regex( ^.*\..+$ )
 
 
 #### General
@@ -408,24 +402,22 @@ The Kafka topic to write the data to.
 *Type:* STRING
 
 
-##### `empty.poll.wait.ms`
+##### `tasks.max`
 
-The amount of time to wait if a poll returns an empty list of records.
+Maximum number of tasks to use for this connector. This should match the partition count for the topic, and the tasks.max for the Sink connector to optimize parallelism.
 
-*Importance:* LOW
+*Importance:* HIGH
 
-*Type:* LONG
+*Type:* INTEGER
 
-*Default Value:* 500
-
-*Validator:* [1,...,9223372036854775807]
+*Default:* 1
 
 
 ## Sink Connector configuration properties
 
 ##### `output.dir`
 
-The directory to write files that have been processed. This directory must exist and be writable by the user running Kafka Connect.
+The directory to write files that have been processed. This directory must exist and be writable by the user running Kafka Connect. The connector will automatically create subdirectories for builds, chunks, locked and merged. The completed files will be in the merged subdriectory. The other three subdirectories are self-managed by the connector.
 
 *Importance:* HIGH
 
@@ -435,11 +427,22 @@ The directory to write files that have been processed. This directory must exist
 
 ##### `topics`
 
-The topic to consume data from a paired File Chunk Source connector. At present one topic is supported. Multiple producers (source connectors) configured to produce to the same topic is supported. The topic can have one, or multiple partitions. When using multiple partitions it is recommended to set tasks.count to match the partition count. The topic should be created manually prior to startup of the source or sink connectors. A schema registry is not required, as all file-chunk events are serialized as bytestream.
+The topic to consume data from a paired File Chunk Source connector. At present one topic is supported. Multiple producers (source connectors) configured to produce to the same topic is supported. The topic can have one, or multiple partitions. When using multiple partitions it is recommended to set tasks.max to match the partition count. The topic should be created manually prior to startup of the source or sink connectors. A schema registry is not required, as all file-chunk events are serialized as bytestream.
 
 *Importance:* HIGH
 
 *Type:* STRING
 
 *Default Value:* none
+
+##### `tasks.max`
+
+Maximum number of tasks to use for this connector. This should match the partition count for the topic, and the tasks.max for the Sink connector to optimize parallelism.
+
+*Importance:* HIGH
+
+*Type:* INTEGER
+
+*Default:* 1
+
 
