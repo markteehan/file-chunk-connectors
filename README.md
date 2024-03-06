@@ -150,7 +150,7 @@ Create a file chunk-source.properties with the following contents to split file
  
 ```
 name=file-chunk-source
-connector.class=com.github.markteehan.file.chunk.source.SpoolDirBinaryFileSourceConnector
+connector.class=com.github.markteehan.file.chunk.source.ChunkSourceConnector
 binary.chunk.size.bytes=50000
 input.file.pattern=.*
 topic=file-chunk-events
@@ -199,7 +199,7 @@ The "converter" properties are needed to ensure that the default Connect worker 
 
 ```
 
-connector.class=ChunkSinkConnector
+connector.class=com.github.markteehan.file.chunk.sink.ChunkSinkConnector
 name=file-chunk-sink
 output.dir=/tmp/download
 topics=file-chunk-events
