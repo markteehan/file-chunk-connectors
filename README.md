@@ -58,7 +58,7 @@ These connectors do not requires a license for use of the current (or prior) ver
 ## Overview
 The Kafka Connect File Chunk Source & Sink connectors watch a directory for files and read the data as new files are written to the input directory. Once a file has been read, it will be placed into the configured ```finished.path``` directory.  Each file is produced to a topic as a stream of messages after splitting the file into chunks of ```binary.chunk.size.bytes```. Messages are serialised as bytes: files can contain any content: text, logs, image, video, any binary encoding. The configured ```chunk size``` must be <= message.max.bytes for the Kafka cluster. 
 
-The matching Sink connector consumes from the topic, using header metadata to reconstruct the file on a filesystem local to the Sink connector. The MD5 signature of the reconstructed target files must match the signature of the source file, otherwise an error is returned.  The connectors should be paired to form a complete data pipeline. Multipartition/multitask operation is supported - the source and sink connectors can be configured with multiple tasks, and the topic can have multiple partitions. The Sink connector re-orders kafka messages when merging the file.
+The matching Sink connector consumes from the topic, using header metadata to reconstruct the file on a filesystem local to the Sink connector. The MD5 signature of the reconstructed target files must match the signature of the source file, otherwise an error is returned.  The connectors should be paired to form a complete data pipeline. Multipartition operation is supported (the Sink connector re-orders kafka messages when merging the file). These connectors do no support multi-task operations yet; they will automatically reduce the task count to 1 until a release where this is supported.
 
 Subdirectories at source are recreated at target. For example consider 100 source connectors sending binary files from a local directory called queued/`hostname`.  The Sink connector reconstructs the files inside 100 subdirectories on the target machine, enabling subdirectory names (to multiple levels) to carry metadata.
 
@@ -67,20 +67,20 @@ These connectors are based on the excellent [Spooldir]([url](https://github.com/
 ## Features
 The File Chunk Source & Sink connectors include the following features:
 	•	Exactly once delivery
-	•	Multiple tasks
+	•	Single task operation (source and sink)
  	•	Throughput Statistics
  
 ### Exactly once delivery
 The File Chunk source and sink connector guarantee an exactly-once pipeline when they are run together - a combination of an at-least delivery guarantee for the source connector and duplicate handling by the sink connector. Consuming File Chunk messages from the topic using a client other than the File Chunk sink connector is not possible.
 
 ### Multiple tasks
-The File Chunk connectors support running multiple tasks with multiple topic partitions. Upload and download of chunks operates with multi-task parallelism, enabling files to be sent to the target faster than a single-threaded sender.
+The File Chunk connectors will support running multiple tasks with multiple topic partitions at a future date. This will enable upload and download of chunks  with multi-task parallelism, enabling files to be sent to the target faster than a single-threaded sender. Although some prior releases allowed multi-task operation, it has been disabled pending further tests.
 
 ### Throughput Statistics
-A one-line summary of throughput for each file is logged to facilitiate tuning of tasks/partitions and chunk sizing.
+A one-line summary of throughput for each file is logged to facilitiate tuning of partitions and chunk sizing.
 
 ```
- A_Haul_in_One.mp4: 12288 KB merged in 212 secs using 4 producer tasks. Bytes/sec=57,962. 
+ A_Haul_in_One.mp4: 12288 KB merged in 212 secs. Bytes/sec=57,962. 
 ```
 
 
@@ -404,7 +404,7 @@ The Kafka topic to write the data to.
 
 ##### `tasks.max`
 
-Maximum number of tasks to use for this connector. This should match the partition count for the topic, and the tasks.max for the Sink connector to optimize parallelism.
+Maximum number of tasks to use for this connector. For this release set tasks.max=1. If a higher value is configured, then it is automatically reset to 1. 
 
 *Importance:* HIGH
 
@@ -435,14 +435,5 @@ The topic to consume data from a paired File Chunk Source connector. At present 
 
 *Default Value:* none
 
-##### `tasks.max`
-
-Maximum number of tasks to use for this connector. This should match the partition count for the topic, and the tasks.max for the Sink connector to optimize parallelism.
-
-*Importance:* HIGH
-
-*Type:* INTEGER
-
-*Default:* 1
 
 
