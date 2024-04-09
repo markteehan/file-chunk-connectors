@@ -1,3 +1,5 @@
+
+
 # File Chunk Connector (Source & Sink)
 
 <img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/assets/16135308/4b3b4c25-a9c7-4b09-9c0e-339c7e696b84">
@@ -50,9 +52,6 @@ Databases handle BLOBs (binary large objects) - so (IMHO) should Kafka. While a 
 
 ## Packaging
 The connectors are packaged either as Kafka Connect Plugins [plugins]([url](https://github.com/markteehan/file-chunk-connectors)) or as complete [tarballs]([url](https://github.com/markteehan/file-chunk-tarballs)) (that include Kafka, Java, the connectors and setup scripts) enabling low-friction deployment on windows or linux. Use the Plugins on a Kafka Connect server, alongside other connector jobs and tasks. Use the tarball for one-key install on laptop/desktop linux or windows machines that will stream data to a central kafka server (for example maintenance/field teams, vehicle upload, offshore or any endpoint with intermittent connectivity.
-
-## License
-These connectors do not requires a license for use of the current (or prior) versions. They are not source-available.
 
 
 ## Overview
@@ -107,9 +106,6 @@ curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/ma
 #### Deploy the Source/Sink connectors using the tarball
 The file-chunk-tarballs repo is a self-contained tarball (=zipfile) containing the stack components run Kafka connect with these connectors. The tarball contains an uploader and a downloader: the streaming service starts on windows or on linux. Elevated privileges (admin or root account) are not required: the service runs in a CMD window. See the repo for deployment instructions.
 
-
-## License
-The File Chunk connectors do not require a License for use.
 
 ## Configuration Properties
 For a complete list of configuration properties, see the specific connector documentation.
@@ -264,8 +260,29 @@ It is suitable for data upload scenarios that include
 - automatic compression & decompression of file content (if uncompressed)
 - Kafka consumer features such as low-cost fanout of data to multiple services simultaneously, parallelism of consumer threads, delivery guarantees
 
+## Security (Authentication and Data Encryption)
+Files are re-assembled at the sink connector as-is: the streamed files in the sink-connector "merged" directory are identical to the files in the source-connector "finished" directory.
+The files selected for upload can be of any format (including any binary format): for example they can be compressed (.gz, .zip etc) or encrypted.
+Topic messages (file chunks) may be optionally encrypted by setting SSL/TLS based configuration for the source and sink connectors.
+Authentication and Encryption properties (using security.protocol & sasl.mechanism) must be identical for the Kafka Connect servers hosting the source and sink connectors.
 
-### Operation
+The File Chunk Connectors support all Kafka Connect communication protocols, including communication with secure Kafka over TLS/SSL as well as TLS/SSL or SASL for 
+authentication. 
+
+| Security              | uses this  | and this | configure this    | and this       |          |
+| Goal                  | Encryption | Auth     |	security.protocol | sasl.mechanism | Comments |
+| --------------------- | ---------- | -------- | ----------------- | -------------- | --------------------------- |
+| no encryption or auth | none       | none     | <unset>           | <unset>        | Use for dev only            |
+| u+p, no encryption    | Plaintext  | SASL	    | SASL_PLAINTEXT    | <unset>        | Not recommended (insecure)  |
+| u+p, traffic encrypted| TLS/SSL    | SASL     | SASL_SSL          | PLAIN          | Use for Confluent Cloud     |
+| Kerberos (GSSAPI)     | TLS/SSL	   | Kerberos	| SASL_SSL          | GSSAPI         |                             |
+| SASL SCRAM            | TLS/SSL	   | SCRAM	  | SASL_SSL          | SCRAM-SHA-256  |                             |
+
+To connect to Confluent Cloud, the file chunk connectors must use SASL_SSL & PLAIN. 
+Although Confluent Cloud also supports OAUTH authorisation (CP 7.2.1 or later), OAUTH is not yet supported for self-managed Kafka Connect clusters.
+
+
+## Source Connector Operation
 Similar to  "spooldir", this connector monitors an input directory for new files that match an input patterns. Eligible files are split into fixed-size chunks of 
 _binary.chunk.size.bytes_ which are produced to a kafka topic before moving the file to the "finished" directory (or the "error" directory if any failure occurred). 
 The input directory on the sending device requires sufficient headroom to duplicate the largest file, since file chunks are written to the filesystem temporarily during streaming. Files are processed one at a time: the first queued file is chunked, sent and finished; before the second file is processed; and so on. 
