@@ -269,12 +269,11 @@ Authentication and Encryption properties (using security.protocol & sasl.mechani
 The File Chunk Connectors support all Kafka Connect communication protocols, including communication with secure Kafka over TLS/SSL as well as TLS/SSL or SASL for 
 authentication. 
 
-| Security              | uses this  | and this | configure this    | and this       |          |
-| Goal                  | Encryption | Auth     |	security.protocol | sasl.mechanism | Comments |
+| Security Goal         | uses this Encryption | and this Auth     | configure this	security.protocol | and this sasl.mechanism | Comments |
 | --------------------- | ---------- | -------- | ----------------- | -------------- | --------------------------- |
 | no encryption or auth | none       | none     | <unset>           | <unset>        | Use for dev only            |
-| u+p, no encryption    | Plaintext  | SASL	    | SASL_PLAINTEXT    | <unset>        | Not recommended (insecure)  |
-| u+p, traffic encrypted| TLS/SSL    | SASL     | SASL_SSL          | PLAIN          | Use for Confluent Cloud     |
+| username/password, no encryption    | Plaintext  | SASL	    | SASL_PLAINTEXT    | <unset>        | Not recommended (insecure)  |
+| username/password, traffic encrypted| TLS/SSL    | SASL     | SASL_SSL          | PLAIN          | Use for Confluent Cloud     |
 | Kerberos (GSSAPI)     | TLS/SSL	   | Kerberos	| SASL_SSL          | GSSAPI         |                             |
 | SASL SCRAM            | TLS/SSL	   | SCRAM	  | SASL_SSL          | SCRAM-SHA-256  |                             |
 
