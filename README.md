@@ -2,7 +2,7 @@
 
 # File Chunk Connector (Source & Sink)
 
-<img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/assets/16135308/4b3b4c25-a9c7-4b09-9c0e-339c7e696b84">
+<img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/blob/main/docs/assets/Flow_20230417.png">
 
 ## TL; DR:
 
