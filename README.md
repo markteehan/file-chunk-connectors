@@ -40,13 +40,13 @@ Why not? There are patterns for file-send scenarios on Kafka: sometimes they can
 
 Locators generally require shared object storage accessible enterprise wide. This is common on cloud platforms, but not as common for on-premise infrastructure.
 
-### Chunk the file
+### Producers/Consumers for chunking files
 
-File reassembly can be hard (partitions, tasks, ordering, duplication) - the Springboot/python development cost can be substantial so the file-chunk connectors handle this complexity
+File reassembly can be hard (partitions, tasks, ordering, duplication) - the Springboot/python development cost can be substantial. The file-chunk connectors handle this complexity
 
 ### BLOBs
 
-Databases handle BLOBs (binary large objects) - so should Kafka. While a byte-encoded small message is unproblematic, the lack of BLOB support (beyond the max.message.size) makes integration with enterprise systems (SAP ERP etc) more problematic than necessary.
+Databases handle BLOBs (binary large objects) - so should Kafka. While a byte-encoded message that fits inside a Kafka message is unproblematic, the lack of BLOB support beyond the max.message.size makes integration with enterprise systems more problematic than necessary.
 
 
 ## Overview
@@ -262,40 +262,35 @@ halt.on.error=true
 
 ## Source Connector configuration properties
 
-#### File System
 ##### `input.path`
 
 The directory to read files that will be processed. This directory must exist and be writable by the user running Kafka Connect.
 
-*Importance:* HIGH
-
-*Type:* STRING
+- *Importance:* HIGH
+- *Type:* STRING
 
 
 ##### `error.path`
 
 The directory to place files in which have error(s). This directory must exist and be writable by the user running Kafka Connect.
 
-*Importance:* HIGH
-
-*Type:* STRING
+- *Importance:* HIGH
+- *Type:* STRING
 
 ##### `finished.path`
 
 The directory to place files that have been successfully processed. This directory must exist and be writable by the user running Kafka Connect.
 
-*Importance:* HIGH
-
-*Type:* STRING
+- *Importance:* HIGH
+- *Type:* STRING
 
 
 ##### `input.file.pattern`
 
 Regular expression to check input file names against. This expression must match the entire filename. 
 
-*Importance:* HIGH
-
-*Type:* STRING
+- *Importance:* HIGH
+- *Type:* STRING
 
 
 ##### `binary.chunk.size.bytes`
@@ -304,55 +299,44 @@ The size of each data chunk that will be produced to the topic. The size must be
 Matching files in input.directory exceeding this size will be split (chunked) into multiple smaller files of this size. 
 Matching files less than this size are streamed as a single chunk.
 
-*Importance:* HIGH
-
-*Type:* INT
-
-*Default Value:* 1048588
+- *Importance:* HIGH
+- *Type:* INT
+- *Default Value:* 1048588
 
 
 ##### `file.minimum.age.ms`
 
 The amount of time in milliseconds after the file was last written to before the file can be processed. This should be set appropriatly to enable large files to be copied into the input.dir before it is processed. 
 
-*Importance:* HIGH
+- *Importance:* HIGH
+- *Type:* LONG
+- *Default Value:* 5000
 
-*Type:* LONG
-
-*Default Value:* 5000
-
-
-#### General
 
 ##### `topic`
 
 The Kafka topic to write the data to.
 
-*Importance:* HIGH
-
-*Type:* STRING
+- *Importance:* HIGH
+- *Type:* STRING
 
 
 ##### `tasks.max`
 
 Maximum number of tasks to use for this connector. For this release set tasks.max=1. If a higher value is configured, then it is automatically reset to 1. 
 
-*Importance:* HIGH
-
-*Type:* INTEGER
-
-*Default:* 1
+- *Importance:* HIGH
+- *Type:* INTEGER
+- *Default:* 1
 
 
 ##### `halt.on.error`
 
 Stop all tasks if an error is encountered while processing input files.
 
-*Importance:* HIGH
-
-*Type:* BOOLEAN
-
-*Default:* true
+- *Importance:* HIGH
+- *Type:* BOOLEAN
+- *Default:* true
 
 
 ## Sink Connector configuration properties
@@ -361,32 +345,26 @@ Stop all tasks if an error is encountered while processing input files.
 
 The directory to write files that have been processed. This directory must exist and be writable by the user running Kafka Connect. The connector will automatically create subdirectories for builds, chunks, locked and merged. The completed files will be in the merged subdriectory. The other three subdirectories are self-managed by the connector.
 
-*Importance:* HIGH
+- *Importance:* HIGH
+- *Type:* STRING
 
-*Type:* STRING
-
-*Default Value:* none
 
 ##### `topics`
 
 The topic to consume data from a paired File Chunk Source Connector. Multiple consumers (sink connectors) configured to consume from the same topic is supported. The topic can have one, or multiple partitions. The topic should be created manually prior to startup of the source or sink connectors. A schema registry is not required, as all file-chunk events are serialized as bytestream.
 
-*Importance:* HIGH
-
-*Type:* STRING
-
-*Default Value:* none
+- *Importance:* HIGH
+- *Type:* STRING
+- *Default Value:* none
 
 
 ##### `halt.on.error`
 
 Stop all tasks if an error is encountered while processing file merges
 
-*Importance:* HIGH
-
-*Type:* BOOLEAN
-
-*Default:* true
+- *Importance:* HIGH
+- *Type:* BOOLEAN
+- *Default:* true
 
 
 
