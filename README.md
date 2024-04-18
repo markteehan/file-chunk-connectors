@@ -139,7 +139,7 @@ curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/ma
 The file-chunk-tarballs repo is a self-contained tarball (=zipfile) containing the stack components run Kafka connect with these connectors. The tarball contains an uploader and a downloader: the streaming service starts on windows or on linux. Elevated privileges (admin or root account) are not required: the service runs in a CMD window. See the repo for deployment instructions.
 
 ## Quickstart
-See [quickstart](https://github.com/markteehan/file-chunk-tarballs/quickstart.md)
+See [quickstart](https://github.com/markteehan/file-chunk-connectors/quickstart.md)
 
 ## Security (Authentication and Data Encryption)
 Files are re-assembled at the sink connector as-is: the streamed files in the sink-connector "merged" directory are identical to the files in the source-connector "finished" directory.
