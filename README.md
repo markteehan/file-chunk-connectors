@@ -4,6 +4,12 @@
 
 <img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/blob/main/docs/assets/Flow_20230417.png">
 
+## _New_ - Install from Confluent Hub
+
+The file-chunk connector plugins are now available on Confluent Hub. To install the connectors, download the [source](https://www.confluent.io/hub/markteehan/file-chunk-source) & [sink](https://www.confluent.io/hub/markteehan/file-chunk-sink), and unzip the zipfiles into the Kafka Connect _plugins_ directory.
+Note that the archives must be unzipped: if not unzipped, Kafka Connect reports error _"Reflections scanner could not find any classes for URLs"_
+
+
 ## TL; DR:
 
 The Kafka Connect File Chunk Source & Sink connectors are a fancy way to send a file somewhere else.
@@ -56,7 +62,7 @@ The matching Sink connector consumes from the topic, using header metadata to re
 
 Subdirectories at source are recreated at target. For example consider 100 source connectors sending binary files from a local directory called queued/`hostname`.  The Sink connector reconstructs the files inside 100 subdirectories on the target machine, enabling an an additional metadata layer using subdirectory naming.
 
-These connectors are based on the excellent [Spooldir]([url](https://github.com/jcustenborder/kafka-connect-spooldir)) connectors (created by Jeremy Custenborder) and the File-Sink connectors.
+These connectors are based on the excellent [Spooldir](https://github.com/jcustenborder/kafka-connect-spooldir) connectors (created by Jeremy Custenborder) and the File-Sink connectors.
 
 
 ## Scenarios
@@ -107,7 +113,10 @@ Set "halt.on.error=true" so that connector tasks will halt if an error is encoun
 
 
 ## Packaging
-The connectors are packaged either as Kafka Connect Plugins [plugins]([url](https://github.com/markteehan/file-chunk-connectors)) or as complete [tarballs]([url](https://github.com/markteehan/file-chunk-tarballs)) (that include Kafka, Java, the connectors and setup scripts) enabling low-friction deployment on windows or linux. Use the Plugins on a Kafka Connect server, alongside other connector jobs and tasks. Use the tarball for one-key install on laptop/desktop linux or windows machines that will stream data to a central kafka server (for example maintenance/field teams, vehicle upload, offshore or any endpoint with intermittent connectivity.
+The connectors are available packaged as three options:
+ - Kafka Connect Plugins on Confluent Hub (skinny jars with dependencies) [source](https://www.confluent.io/hub/markteehan/file-chunk-source) & [sink](https://www.confluent.io/hub/markteehan/file-chunk-sink)
+ - Kafka Connect Plugins [plugins](https://github.com/markteehan/file-chunk-connectors) (Uber jars)
+ - Complete [tarballs](https://github.com/markteehan/file-chunk-tarballs) that include Kafka, Java, the connectors and setup scripts) enabling low-friction single-machine deployment on windows or linux. Use the Plugins on a Kafka Connect server, alongside other connector jobs and tasks. Use the tarball for one-key install on laptop/desktop linux or windows machines.
 
 
 ## Contacts
@@ -192,6 +201,12 @@ For consultation on feature enhancements please contact Mark Teehan (teehan@gmai
 # Troubleshooting
 ```org.apache.kafka.common.errors.RecordTooLargeException: The request included a message larger than the max message size the server will accept.```
 The value specified for binary.chunk.size.bytes exceeds the maximum message size (message.max.bytes) for this Kafka cluster. Specify a smaller value.
+
+```Reflections scanner could not find any classes for URLs```
+or 
+```Scanner SubTypesScanner was not configured```
+There is an unexpected file in the plugins directory.  Do not place the plugins "zipfile" in the plugins directory - instead unzip it, so that the plugins directory contains the subdirectories markteehan-file-chunk-source-2.x (containing lib, etc and doc) and similar for the sink.
+
 
 
 # Compatibility
