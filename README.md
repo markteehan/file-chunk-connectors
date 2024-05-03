@@ -18,9 +18,6 @@ confluent hub install markteehan/file-chunk-sink:latest
 ```
 
 
-## _New_ - Install from Confluent Hub
->>>>>>> 802745a (release 2.4)
-
 ## _New_ -  version 2.4 (03-May-2024)
 New Source Connector configuration property "files.dir" (deprecates properties "input.path:, "error.path" and "finished.path")
 New Sink Connector configuration property "files.dir" (deprecates property "output.path")
