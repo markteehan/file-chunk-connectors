@@ -4,6 +4,23 @@
 
 <img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/blob/main/docs/assets/Flow_20230417.png">
 
+<<<<<<< HEAD
+=======
+
+## _New_ -  version 2.4
+Source: new configuration property "files.dir" (deprecates properties input.path, error.path and finished.path)
+Sink: new configuration property "files.dir" (deprecates property output.path)
+Source: new configuration properties finished.file.retention.mins & error.file.retention.mins for automated cleanup of uploaded files
+
+The file-chunk connector plugins are now available on Confluent Hub. To install the connectors, run 
+```
+confluent hub install markteehan/file-chunk-source:latest
+confluent hub install markteehan/file-chunk-sink:latest
+```
+
+
+## _New_ - Install from Confluent Hub
+>>>>>>> 802745a (release 2.4)
 
 ## _New_ -  version 2.4 (03-May-2024)
 New Source Connector configuration property "files.dir" (deprecates properties "input.path:, "error.path" and "finished.path")
@@ -391,6 +408,7 @@ Stop all tasks if an error is encountered while processing file merges
 - *Importance:* HIGH
 - *Type:* BOOLEAN
 - *Default:* true
+
 
 
 
