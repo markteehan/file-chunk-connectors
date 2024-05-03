@@ -4,8 +4,7 @@
 
 <img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/blob/main/docs/assets/Flow_20230417.png">
 
-<<<<<<< HEAD
-=======
+
 
 ## _New_ -  version 2.4
 Source: new configuration property "files.dir" (deprecates properties input.path, error.path and finished.path)
