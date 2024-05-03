@@ -4,10 +4,18 @@
 
 <img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/blob/main/docs/assets/Flow_20230417.png">
 
-## _New_ - Install from Confluent Hub
 
-The file-chunk connector plugins are now available on Confluent Hub. To install the connectors, download the [source](https://www.confluent.io/hub/markteehan/file-chunk-source) & [sink](https://www.confluent.io/hub/markteehan/file-chunk-sink), and unzip the zipfiles into the Kafka Connect _plugins_ directory.
-Note that the archives must be unzipped: if not unzipped, Kafka Connect reports error _"Reflections scanner could not find any classes for URLs"_
+## _New_ -  version 2.4 (03-May-2024)
+New Source Connector configuration property "files.dir" (deprecates properties "input.path:, "error.path" and "finished.path")
+New Sink Connector configuration property "files.dir" (deprecates property "output.path")
+Source: new configuration properties "finished.file.retention.mins" & "error.file.retention.mins" for automated retention & cleanup of uploaded files
+
+The file-chunk connector plugins are now available on Confluent Hub. To install the connectors, run 
+```
+confluent hub install markteehan/file-chunk-source:latest
+confluent hub install markteehan/file-chunk-sink:latest
+```
+
 
 
 ## TL; DR:
@@ -77,7 +85,7 @@ It is suitable for data scenarios that include
 
 ## Source Connector Operation
 Similar to  "spooldir", this connector monitors an input directory for new files that match an input patterns. Eligible files are split into fixed-size chunks of 
-_binary.chunk.size.bytes_ which are produced to a kafka topic before moving the file to the "finished" directory (or the "error" directory if any failure occurred). 
+_binary.chunk.size.bytes_ which are produced to a kafka topic before renaming the file with a __FINISHED postfix flag (or an __ERROR postfix flag if any failure occurred). 
 The input directory on the sending device requires sufficient headroom to duplicate the largest file, since file chunks are written to the filesystem temporarily during streaming. Files are processed one at a time: the first queued file is chunked, sent and finished; before the second file is processed; and so on. 
 The connector observes & recreates subdirectories (to multiple levels): if an eligible file is created in a subdirectory "field-team-056", then the sink connector will reassemble the file in a subdirectory of the same name.
 
@@ -138,8 +146,8 @@ Copy the jarfiles for the source and sink connectors to your kafka connect plugi
 2. For Confluent this is generally under share/confluent-hub-components, for Apache Kafka create new directory kafka\plugins. 
 3. Copy these two jarfiles the subdirectory:
 ```
-curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-2.3-jar-with-dependencies.jar
-curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-2.3-jar-with-dependencies.jar
+curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-2.4-jar-with-dependencies.jar
+curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-2.4-jar-with-dependencies.jar
 ```
 3. Restart the Connect worker. Kafka Connect will discover and unpack each jarfile. 
 
@@ -151,7 +159,7 @@ The file-chunk-tarballs repo is a self-contained tarball (=zipfile) containing t
 See [quickstart](https://github.com/markteehan/file-chunk-connectors/quickstart.md)
 
 ## Security (Authentication and Data Encryption)
-Files are re-assembled at the sink connector as-is: the streamed files in the sink-connector "merged" directory are identical to the files in the source-connector "finished" directory.
+Files are re-assembled at the sink connector as-is: the streamed files in the sink-connector "merged" directory are identical to the files in the source-connector files.dir directory.
 The files selected for upload can be of any format (including any binary format): for example they can be compressed (.gz, .zip etc) or encrypted.
 Topic messages (file chunks) may be optionally encrypted by setting SSL/TLS based configuration for the source and sink connectors.
 Authentication and Encryption properties (using security.protocol & sasl.mechanism) must be identical for the Kafka Connect servers hosting the source and sink connectors.
@@ -239,19 +247,18 @@ halt.on.error=true
 ## Example Source Connector JSON 
 ```
 {
-                                   "name" : "file-chunk-uploader-01" 
-,"config":{
-                                  "topic" : "file-chunks-topic"
-,                       "connector.class" : "com.github.markteehan.file.chunk.source.ChunkSourceConnector"
-,                            "input.path" : ".../upload/queued"
-,                            "error.path" : ".../upload/error"
-,                         "finished.path" : ".../upload/finished"
-,                    "input.file.pattern" : ".*JPG"
-,                             "tasks.max" : "1"
-,                   "file.minimum.age.ms" : "5000"
-,               "binary.chunk.size.bytes" : "1000000"
-, "cleanup.policy.maintain.relative.path" : "true"
-,          "input.path.walk.recursively"  : "true"
+                           "name": "file-chunk-uploader-job" ,"config":{
+                                  "topic": "file-chunk-topic"
+,                       "connector.class": "com.github.markteehan.file.chunk.source.ChunkSourceConnector"
+,                             "files.dir": "/somedirectory/upload"
+,                    "input.file.pattern": ".*"
+,                             "tasks.max": "1"
+,                  "file.minimum.age.ms" : "5000"
+,              "binary.chunk.size.bytes" : "2000000"
+, "cleanup.policy.maintain.relative.path": "true"
+,          "input.path.walk.recursively" : "true"
+,          "finished.file.retention.mins": "60"
+
 }}
 ```
 
@@ -259,44 +266,47 @@ halt.on.error=true
 
 ```
 {
-                                   "name" : "file-chunk-downloader"
+                           "name": "file-chunk-downloader-job"
 ,"config":{
-                                 "topics" : "file-chunks-topic"
-,                       "connector.class" : "com.github.markteehan.file.chunk.sink.ChunkSinkConnector"
-,                             "tasks.max" : "1"
-,                            "output.dir" : ".../download"
-,                 "auto.register.schemas" : "false"
-,                         "schema.ignore" : "true"
-,             "schema.generation.enabled" : "false"
-,          "key.converter.schemas.enable" : "false"
-,        "value.converter.schemas.enable" : "false"
-,                  "schema.compatibility" : "none"
+                         "topics": "file-chunk-topic"
+,               "connector.class": "com.github.markteehan.file.chunk.sink.ChunkSinkConnector"
+,                     "tasks.max": "1"
+,                     "files.dir": "/somedirectory/download"
+,         "auto.register.schemas": "false"
+,                 "schema.ignore": "true"
+,     "schema.generation.enabled": "false"
+,"  key.converter.schemas.enable": "false"
+,"value.converter.schemas.enable": "false"
+,          "schema.compatibility": "NONE"
 }}
 ```
 
 
 ## Source Connector configuration properties
 
-##### `input.path`
+##### `files.dir`
 
 The directory to read files that will be processed. This directory must exist and be writable by the user running Kafka Connect.
-
+Version 2.4: configuration properties input.path, finished.path and error.path have been deprecated. Use files.dir instead.
+If the source and sink connectors are running on the same machine (for testing) then ensure that the files.dir property is not set to the same directory for both connectors.
 - *Importance:* HIGH
 - *Type:* STRING
 
 
-##### `error.path`
+##### `finished.file.retention.mins`
 
-The directory to place files in which have error(s). This directory must exist and be writable by the user running Kafka Connect.
+the duration (in minutes) before uploaded files are automatically deleted from the "files.dir" directory. The default is 60 mins. Set it to -1 to never delete uploaded files.
 
 - *Importance:* HIGH
+- *Default:* 60
 - *Type:* STRING
 
-##### `finished.path`
+##### `error.file.retention.min`
 
-The directory to place files that have been successfully processed. This directory must exist and be writable by the user running Kafka Connect.
+The duration (in minutes) before files that failed to upload are automatically deleted from the "files.dir" directory. The default is -1 (never delete)
 
 - *Importance:* HIGH
+- *Default:* -1
 - *Type:* STRING
 
 
@@ -356,9 +366,10 @@ Stop all tasks if an error is encountered while processing input files.
 
 ## Sink Connector configuration properties
 
-##### `output.dir`
+##### `files.dir`
 
 The directory to write files that have been processed. This directory must exist and be writable by the user running Kafka Connect. The connector will automatically create subdirectories for builds, chunks, locked and merged. The completed files will be in the merged subdriectory. The other three subdirectories are self-managed by the connector.
+If the source and sink connectors are running on the same machine (for testing) then ensure that the files.dir property is not set to the same directory for both connectors.
 
 - *Importance:* HIGH
 - *Type:* STRING
