@@ -29,6 +29,101 @@ confluent hub install markteehan/file-chunk-source:latest
 confluent hub install markteehan/file-chunk-sink:latest
 ```
 
+## Quick Start
+The following steps show the File Chunk Source & Sink connectors to stream a file to a Kafka topic named "file-chunk-topic".
+
+### Prerequisites
+	•	Confluent Platform
+	•	Confluent CLI (requires separate installation)
+Install the connector the steps above for _Install the Connector Manually_
+Start Confluent Platform using the Confluent CLI confluent local commands. confluent local services start
+
+
+#### Linux/MacOS:
+- create a topic file-chunk-topic:
+```
+kafka-topics --create --topic file-chunk-topic --partitions 1 --bootstrap-server localhost:9092
+```
+
+- create directories to upload and download files
+```
+cd /tmp
+rm -rf upload download 
+mkdir upload download
+```
+
+- Start Confluent Platform
+```
+confluent local services start
+```
+
+- Install the plugins
+```
+ confluent hub install markteehan/file-chunk-sink:latest
+ confluent hub install markteehan/file-chunk-source:latest
+```
+
+
+Create uploader.json with the following:
+```
+{
+                                   "name": "file-chunk-uploader-job" ,
+                                 "config": {
+                                  "topic": "file-chunk-topic"
+,                       "connector.class": "com.github.markteehan.file.chunk.source.ChunkSourceConnector"
+,                             "files.dir": "/tmp/upload"
+,                    "input.file.pattern": ".*"
+,                             "tasks.max": "1"
+,                  "file.minimum.age.ms" : "5000"
+,              "binary.chunk.size.bytes" : "1000000"
+, "cleanup.policy.maintain.relative.path": "true"
+,          "input.path.walk.recursively" : "true"
+,          "finished.file.retention.mins": "60"
+,                       "value.converter": "org.apache.kafka.connect.converters.ByteArrayConverter"
+,                         "key.converter": "org.apache.kafka.connect.converters.ByteArrayConverter"
+,          "key.converter.schemas.enable": "false"
+,        "value.converter.schemas.enable": "false"
+}}
+```
+
+
+Create downloader.json with the following:
+```
+{
+                           "name": "file-chunk-downloader-job"
+,                                "config": {
+                                 "topics": "file-chunk-topic"
+,                       "connector.class": "com.github.markteehan.file.chunk.sink.ChunkSinkConnector"
+,                             "tasks.max": "1"
+,                             "files.dir": "/tmp/download"
+,                 "auto.register.schemas": "false"
+,                         "schema.ignore": "true"
+,             "schema.generation.enabled": "false"
+,                  "schema.compatibility": "NONE"
+,                       "value.converter": "org.apache.kafka.connect.converters.ByteArrayConverter"
+,                         "key.converter": "org.apache.kafka.connect.converters.ByteArrayConverter"
+,          "key.converter.schemas.enable": "false"
+,        "value.converter.schemas.enable": "false"
+
+}}
+```
+
+
+- Start the connectors (if restarting, clear contents of the /tmp/upload directory first).
+Using Control Center, select Connect | Connectors | Add Connector | upload connector configuration file and select the json files above, one by one.
+Control Center may show a "failed" status for a few seconds before the status becomes "running".
+
+- Test a Pipeline
+The uploader will chunk and stream any files (input.file.pattern": ".*") in /tmp/upload using chunks of 1m size. Start with a small file:
+```
+cp /var/log/install.log /tmp/upload
+```
+
+Wait a few seconds for the file to complte processing. Examine the contents of /tmp/download/merged to confirm that "install.log" has been consumed and merged.
+Diff the file to confirm that it is itentical to the uploaded file
+
+
+
 
 
 ## TL; DR:
