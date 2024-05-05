@@ -23,7 +23,6 @@ confluent hub install markteehan/file-chunk-sink:latest
 - Confluent CLI (requires separate installation)
 
 ### Create a topic
-- create a topic file-chunk-topic:
 ```
 kafka-topics --create --topic file-chunk-topic --partitions 1 --bootstrap-server localhost:9092
 ```
@@ -45,7 +44,6 @@ confluent local services start
  confluent hub install markteehan/file-chunk-sink:latest
  confluent hub install markteehan/file-chunk-source:latest
 ```
-
 
 ### Create uploader.json
 
@@ -69,7 +67,6 @@ confluent local services start
 ,        "value.converter.schemas.enable": "false"
 }}
 ```
-
 
 ### Create downloader.json
 
@@ -105,7 +102,7 @@ The uploader will chunk and stream any files (input.file.pattern": ".*") in /tmp
 cp /var/log/install.log /tmp/upload
 ```
 
-Wait a few seconds for the file to complte processing. Examine the contents of /tmp/download/merged to confirm that "install.log" has been consumed and merged.
+Wait a few seconds for the file to complete processing. Examine the contents of /tmp/download/merged to confirm that "install.log" has been consumed and merged.
 Diff the file to confirm that it is itentical to the uploaded file
 
 ## End of Quickstart
@@ -228,29 +225,21 @@ For more specific questions (Consulting, usage scenarios etc) please email Mark 
 
 ## Installation
 ### Install the File Chunk Source & Sink Connector Packages
-You can install this connector by manually downloading the ZIP file. These connectors are not available on Confluent Hub.
+You can install this connector by manually downloading the ZIP files from Confluent Hub.
+They can be installed manually by unpacking the zipfiles into the share/confluent-hub-components (or similar). The zipfiles must be unpacked.
+
 #### Prerequisites
 Note You must install the connector on every machine where Connect will run.  
 _Install the connector manually_
 Download the jarfiles for the Source & Sink connectors and then follow the manual connector installation instructions.
 #### Manually
 Copy the jarfiles for the source and sink connectors to your kafka connect plugins directory and restart Kafka Connect.
+Alternatively, download the jar-with-dependencies from github and copy them to the plugins directory.
 
-1. Create a directory under the `plugin.path` on your Connect worker.
-2. For Confluent this is generally under share/confluent-hub-components, for Apache Kafka create new directory kafka\plugins. 
-3. Copy these two jarfiles the subdirectory:
 ```
 curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-sink-2.4-jar-with-dependencies.jar
 curl -O -L https://raw.githubusercontent.com/markteehan/file-chunk-connectors/main/plugins/file-chunk-source-2.4-jar-with-dependencies.jar
 ```
-3. Restart the Connect worker. Kafka Connect will discover and unpack each jarfile. 
-
-
-#### Deploy the Source/Sink connectors using the tarball
-The file-chunk-tarballs repo is a self-contained tarball (=zipfile) containing the stack components run Kafka connect with these connectors. The tarball contains an uploader and a downloader: the streaming service starts on windows or on linux. Elevated privileges (admin or root account) are not required: the service runs in a CMD window. See the repo for deployment instructions.
-
-## Quickstart
-See [quickstart](https://github.com/markteehan/file-chunk-connectors/quickstart.md)
 
 ## Security (Authentication and Data Encryption)
 Files are re-assembled at the sink connector as-is: the streamed files in the sink-connector "merged" directory are identical to the files in the source-connector files.dir directory.
@@ -337,43 +326,6 @@ group.id=file-chunk-group
 halt.on.error=true
 ```
 
-
-## Example Source Connector JSON 
-```
-{
-                           "name": "file-chunk-uploader-job" ,"config":{
-                                  "topic": "file-chunk-topic"
-,                       "connector.class": "com.github.markteehan.file.chunk.source.ChunkSourceConnector"
-,                             "files.dir": "/somedirectory/upload"
-,                    "input.file.pattern": ".*"
-,                             "tasks.max": "1"
-,                  "file.minimum.age.ms" : "5000"
-,              "binary.chunk.size.bytes" : "2000000"
-, "cleanup.policy.maintain.relative.path": "true"
-,          "input.path.walk.recursively" : "true"
-,          "finished.file.retention.mins": "60"
-
-}}
-```
-
-## Example Sink Connector JSON 
-
-```
-{
-                           "name": "file-chunk-downloader-job"
-,"config":{
-                         "topics": "file-chunk-topic"
-,               "connector.class": "com.github.markteehan.file.chunk.sink.ChunkSinkConnector"
-,                     "tasks.max": "1"
-,                     "files.dir": "/somedirectory/download"
-,         "auto.register.schemas": "false"
-,                 "schema.ignore": "true"
-,     "schema.generation.enabled": "false"
-,"  key.converter.schemas.enable": "false"
-,"value.converter.schemas.enable": "false"
-,          "schema.compatibility": "NONE"
-}}
-```
 
 
 ## Source Connector configuration properties
