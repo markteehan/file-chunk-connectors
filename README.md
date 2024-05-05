@@ -5,19 +5,6 @@
 <img width="905" alt="image" src="https://github.com/markteehan/file-chunk-connectors/blob/main/docs/assets/Flow_20230417.png">
 
 
-
-## _New_ -  version 2.4
-Source: new configuration property "files.dir" (deprecates properties input.path, error.path and finished.path)
-Sink: new configuration property "files.dir" (deprecates property output.path)
-Source: new configuration properties finished.file.retention.mins & error.file.retention.mins for automated cleanup of uploaded files
-
-The file-chunk connector plugins are now available on Confluent Hub. To install the connectors, run 
-```
-confluent hub install markteehan/file-chunk-source:latest
-confluent hub install markteehan/file-chunk-sink:latest
-```
-
-
 ## _New_ -  version 2.4 (03-May-2024)
 New Source Connector configuration property "files.dir" (deprecates properties "input.path:, "error.path" and "finished.path")
 New Sink Connector configuration property "files.dir" (deprecates property "output.path")
@@ -30,41 +17,38 @@ confluent hub install markteehan/file-chunk-sink:latest
 ```
 
 ## Quick Start
-The following steps show the File Chunk Source & Sink connectors to stream a file to a Kafka topic named "file-chunk-topic".
 
 ### Prerequisites
-	•	Confluent Platform
-	•	Confluent CLI (requires separate installation)
-Install the connector the steps above for _Install the Connector Manually_
-Start Confluent Platform using the Confluent CLI confluent local commands. confluent local services start
+- Confluent Platform
+- Confluent CLI (requires separate installation)
 
-
-#### Linux/MacOS:
+### Create a topic
 - create a topic file-chunk-topic:
 ```
 kafka-topics --create --topic file-chunk-topic --partitions 1 --bootstrap-server localhost:9092
 ```
 
-- create directories to upload and download files
+### Create directories to upload and download files
 ```
 cd /tmp
 rm -rf upload download 
 mkdir upload download
 ```
 
-- Start Confluent Platform
+### Start Confluent Platform
 ```
 confluent local services start
 ```
 
-- Install the plugins
+### Install the plugins
 ```
  confluent hub install markteehan/file-chunk-sink:latest
  confluent hub install markteehan/file-chunk-source:latest
 ```
 
 
-Create uploader.json with the following:
+### Create uploader.json
+
 ```
 {
                                    "name": "file-chunk-uploader-job" ,
@@ -87,10 +71,11 @@ Create uploader.json with the following:
 ```
 
 
-Create downloader.json with the following:
+### Create downloader.json
+
 ```
 {
-                           "name": "file-chunk-downloader-job"
+                                   "name": "file-chunk-downloader-job"
 ,                                "config": {
                                  "topics": "file-chunk-topic"
 ,                       "connector.class": "com.github.markteehan.file.chunk.sink.ChunkSinkConnector"
@@ -109,11 +94,12 @@ Create downloader.json with the following:
 ```
 
 
-- Start the connectors (if restarting, clear contents of the /tmp/upload directory first).
+### Start the connectors
+If restarting, clear contents of the /tmp/upload directory first.
 Using Control Center, select Connect | Connectors | Add Connector | upload connector configuration file and select the json files above, one by one.
 Control Center may show a "failed" status for a few seconds before the status becomes "running".
 
-- Test a Pipeline
+### Test a Pipeline
 The uploader will chunk and stream any files (input.file.pattern": ".*") in /tmp/upload using chunks of 1m size. Start with a small file:
 ```
 cp /var/log/install.log /tmp/upload
@@ -122,7 +108,7 @@ cp /var/log/install.log /tmp/upload
 Wait a few seconds for the file to complte processing. Examine the contents of /tmp/download/merged to confirm that "install.log" has been consumed and merged.
 Diff the file to confirm that it is itentical to the uploaded file
 
-
+## End of Quickstart
 
 
 
